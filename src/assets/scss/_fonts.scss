@@ -17,6 +17,15 @@ $berlingo: 'berlingo';
   src: url("@/assets/fonts/Euclid Circular B Bold.ttf");
 }
 
+
+@font-face {
+  font-family: $euclid;
+  font-style: normal;
+  font-weight: 600;
+  font-display: auto;
+  src: url("@/assets/fonts/Euclid Circular B SemiBold.ttf");
+}
+
 @font-face {
   font-family: $euclid;
   font-style: normal;

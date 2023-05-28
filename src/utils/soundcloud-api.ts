@@ -21,3 +21,23 @@ export async function getFavorites(apiKey: string, profileId: string) {
       });
   });
 }
+
+export async function getProfileInfos(apiKey: string, profileId: string) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      url: `${API_URL}/users/${profileId}?client_id=${apiKey}`,
+    };
+    CapacitorHttp.get(options)
+      .then((response) => {
+        const results = response.data;
+        if (results) {
+          resolve(results);
+        } else {
+          reject(results);
+        }
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+}
