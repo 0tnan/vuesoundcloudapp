@@ -1,0 +1,16 @@
+.Text {
+  @extend %Text;
+}
+
+.Input {
+  border: none;
+  border-bottom: 0.1rem solid $black;
+
+  &::placeholder {
+    font-family: $font-primary;
+    font-weight: 300;
+    font-style: italic;
+    font-size: $s;
+    opacity: 0.5;
+  }
+}
