@@ -5,6 +5,7 @@
       <div v-else class="Home-profile">
         <p class="Home-profileText Text">Fetch From</p>
         <input
+          type="text"
           v-model="url"
           class="Home-profileInput Input"
           placeholder='Paste Your SoundCloud Profile Here (no "on." links )'
@@ -27,10 +28,11 @@
 <script lang="ts">
 import Vue from "vue";
 import getProfile from "../utils/get-profile";
-import { getFavorites } from "../utils/soundcloud-api";
+import { getFavorites, getProfileInfos } from "../utils/soundcloud-api";
 import store from "@/store";
 import { urlRegex } from "../utils/regex";
 import { mapGetters } from "vuex";
+import { LocalStorage } from "../enums/local-storage";
 
 export default Vue.extend({
   data() {
@@ -42,7 +44,7 @@ export default Vue.extend({
     };
   },
   computed: {
-    ...mapGetters(["getApiKey", "getProfileId"]),
+    ...mapGetters(["getApiKey", "getProfileId", "getFavorites", "getUser"]),
   },
   methods: {
     getProfile() {
@@ -51,7 +53,7 @@ export default Vue.extend({
         getProfile(this.url)
           .then((soundcloudId) => {
             store.commit("setProfileId", soundcloudId);
-            this.getFavorites();
+            this.fetchDatas();
           })
           .catch(() => {
             this.hasError = true;
@@ -61,16 +63,27 @@ export default Vue.extend({
         this.hasError = true;
       }
     },
-    getFavorites() {
+    fetchDatas() {
       this.isFetching = true;
-      getFavorites(this.getApiKey, this.getProfileId)
-        .then((results) => {
-          console.log(results);
+      Promise.all([
+        getFavorites(this.getApiKey, this.getProfileId),
+        getProfileInfos(this.getApiKey, this.getProfileId),
+      ])
+        .then((responses) => {
+          store.commit("setFavorites", responses[0]);
+          store.commit("setUser", responses[1]);
+          const favoritesJSON = JSON.stringify(this.getFavorites);
+          const userJSON = JSON.stringify(this.getUser);
+          const profileIdJSON = JSON.stringify(this.getProfileId);
+          localStorage.setItem(LocalStorage.Favorites, favoritesJSON);
+          localStorage.setItem(LocalStorage.User, userJSON);
+          localStorage.setItem(LocalStorage.ProfileId, profileIdJSON);
           this.isFetching = false;
+          this.$router.push("/player");
         })
         .catch(() => {
           this.hasError = true;
-          this.error = "Error while fetching!";
+          this.error = "An error occured !";
           this.isFetching = false;
         });
     },
