@@ -9,26 +9,31 @@ import Vue from "vue";
 import fetchKey from "./utils/fetch-key";
 import store from "@/store";
 import { LocalStorage } from "./enums/local-storage";
+import { getFavorites } from "./utils/soundcloud-api";
 
 export default Vue.extend({
   created() {
-    fetchKey().then((clientId) => {
-      store.commit("setApiKey", clientId);
-    });
-
-    const favorites = localStorage.getItem(LocalStorage.Favorites);
     const user = localStorage.getItem(LocalStorage.User);
     const profileId = localStorage.getItem(LocalStorage.ProfileId);
+    let parsedUser = "";
+    let parsedProfileId = "";
 
-    if (!!favorites && !!user && !!profileId) {
-      const parsedFavorites = JSON.parse(favorites);
-      const parsedUser = JSON.parse(user);
-      const parsedProfileId = JSON.parse(profileId);
-      store.commit("setFavorites", parsedFavorites);
+    if (!!user && !!profileId) {
+      parsedUser = JSON.parse(user);
+      parsedProfileId = JSON.parse(profileId);
       store.commit("setUser", parsedUser);
       store.commit("setProfileId", parsedProfileId);
-      this.$router.push("/player");
     }
+
+    fetchKey().then((clientId: string) => {
+      store.commit("setApiKey", clientId);
+
+      getFavorites(clientId, parsedProfileId).then((response) => {
+        store.commit("setFavorites", response);
+        store.commit("setNextUrl", response.next_href);
+        this.$router.push("/player");
+      });
+    });
   },
 });
 </script>

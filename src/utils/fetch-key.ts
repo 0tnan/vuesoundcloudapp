@@ -1,6 +1,6 @@
 import { CapacitorHttp } from "@capacitor/core";
 
-export default async function fetchKey() {
+export default async function fetchKey(): Promise<string> {
   return new Promise((resolve, reject) => {
     const options = {
       url: "https://m.soundcloud.com",

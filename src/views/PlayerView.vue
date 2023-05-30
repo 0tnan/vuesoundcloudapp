@@ -42,23 +42,48 @@
       </div>
     </div>
     <transition mode="out-in" name="fade" appear>
-      <div v-if="gridEnabled" key="grid" class="Player-musicGrid">
+      <div
+        @scroll="checkScrollEnd"
+        v-if="gridEnabled"
+        key="grid"
+        id="queue"
+        class="Player-musicGrid"
+      >
         <GridTile
           v-for="track in tracklist"
           :key="track.id"
-          :src="getFullScaleImage(track.artwork_url)"
+          :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
           :title="track.title"
           :artist="track.user.username"
         ></GridTile>
+        <img
+          v-if="scrollEnd"
+          class="Player-loading"
+          lazy
+          src="@/assets/img/loading.gif"
+        />
       </div>
-      <div v-else key="list" class="Player-musicList" appear>
+      <div
+        @scroll="checkScrollEnd"
+        v-else
+        key="list"
+        id="queue"
+        class="Player-musicList"
+        appear
+      >
         <ListTile
           v-for="track in tracklist"
           :key="track.id"
-          :src="getFullScaleImage(track.artwork_url)"
+          :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
           :title="track.title"
           :artist="track.user.username"
         ></ListTile>
+        <img
+          v-if="scrollEnd"
+          class="Player-loading"
+          lazy
+          src="@/assets/img/loading.gif"
+        />
       </div>
     </transition>
   </div>
@@ -71,6 +96,10 @@ import Vue from "vue";
 import { mapGetters } from "vuex";
 import GridTile from "@/components/GridTile.vue";
 import ListTile from "@/components/ListTile.vue";
+import { getNextFavorites } from "../utils/soundcloud-api";
+import store from "@/store";
+import { LocalStorage } from "@/enums/local-storage";
+import { debounce } from "lodash";
 
 export default Vue.extend({
   components: {
@@ -81,7 +110,11 @@ export default Vue.extend({
     return {
       gridEnabled: true,
       tracklist: [] as Track[],
+      scrollEnd: true,
     };
+  },
+  created() {
+    this.updateFavorites = debounce(this.updateFavorites, 1000);
   },
   mounted() {
     const favorites = this.getFavorites as Favorites;
@@ -91,9 +124,18 @@ export default Vue.extend({
     console.log(this.tracklist);
   },
   computed: {
-    ...mapGetters(["getApiKey", "getProfileId", "getFavorites", "getUser"]),
+    ...mapGetters([
+      "getApiKey",
+      "getProfileId",
+      "getFavorites",
+      "getUser",
+      "getNextUrl",
+    ]),
     username(): string {
       return this.getUser.username;
+    },
+    avatarUrl(): string {
+      return this.getUser.avatar_url;
     },
   },
   methods: {
@@ -103,10 +145,45 @@ export default Vue.extend({
     switchToList() {
       this.gridEnabled = false;
     },
-    getFullScaleImage(url: string) {
+    getFullScaleImage(url: string, avatar_url: string) {
       if (url) {
         const highDefinitionUrl = url.replace("-large", "-t500x500");
         return highDefinitionUrl;
+      } else if (!url && !!avatar_url) {
+        const highDefinitionUrl = avatar_url.replace("-large", "-t500x500");
+        return highDefinitionUrl;
+      }
+    },
+    checkScrollEnd() {
+      const queue = document.getElementById("queue");
+      if (queue) {
+        const isScrollEnd =
+          queue.scrollTop + queue.clientHeight >= queue.scrollHeight;
+        if (isScrollEnd && this.getNextUrl) {
+          this.updateFavorites();
+        }
+      }
+    },
+    updateFavorites() {
+      getNextFavorites(this.getApiKey, this.getNextUrl).then(
+        (results: Favorites) => {
+          results.collection.forEach((item) => {
+            this.tracklist.push(item.track);
+          });
+          store.commit("addToFavorites", results.collection);
+          store.commit("setNextUrl", results.next_href);
+          const favoritesJSON = JSON.stringify(this.getFavorites);
+          const nextUrlJSON = JSON.stringify(this.getNextUrl);
+          localStorage.setItem(LocalStorage.Favorites, favoritesJSON);
+          localStorage.setItem(LocalStorage.NextUrl, nextUrlJSON);
+        }
+      );
+    },
+  },
+  watch: {
+    getNextUrl(newVal) {
+      if (newVal === null) {
+        this.scrollEnd = false;
       }
     },
   },
@@ -117,6 +194,13 @@ export default Vue.extend({
 .Player {
   padding: 4rem 2.5rem;
   height: 100%;
+  position: relative;
+
+  &-loading {
+    margin: 0 auto;
+    height: 5rem;
+    width: 5rem;
+  }
 
   &-top {
     &Container {
@@ -217,6 +301,16 @@ export default Vue.extend({
 
   &-musicList {
     flex-direction: column;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0.5rem;
+    position: absolute;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: $black;
+    border-radius: 5rem;
   }
 }
 </style>

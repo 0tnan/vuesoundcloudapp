@@ -1,3 +1,4 @@
+import { FavoriteItem } from "@/interfaces/favorite-item";
 import { Favorites } from "@/interfaces/favorites";
 import { User } from "@/interfaces/user";
 import Vue from "vue";
@@ -10,6 +11,7 @@ interface State {
   user: User;
   profileId: string;
   favorites: Favorites;
+  nextUrl: string;
 }
 
 export default new Vuex.Store({
@@ -19,6 +21,7 @@ export default new Vuex.Store({
       user: {} as User,
       profileId: "",
       favorites: {} as Favorites,
+      nextUrl: "",
     };
   },
   getters: {
@@ -34,6 +37,9 @@ export default new Vuex.Store({
     getUser(state: State) {
       return state.user;
     },
+    getNextUrl(state: State) {
+      return state.nextUrl;
+    },
   },
   mutations: {
     setApiKey(state: State, apiKey: string) {
@@ -45,8 +51,14 @@ export default new Vuex.Store({
     setFavorites(state: State, favorites: Favorites) {
       state.favorites = favorites;
     },
+    addToFavorites(state: State, collection: FavoriteItem[]) {
+      state.favorites.collection.push(...collection);
+    },
     setUser(state: State, user: User) {
       state.user = user;
+    },
+    setNextUrl(state: State, nextUrl: string) {
+      state.nextUrl = nextUrl;
     },
   },
   actions: {},
