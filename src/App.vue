@@ -28,11 +28,13 @@ export default Vue.extend({
     fetchKey().then((clientId: string) => {
       store.commit("setApiKey", clientId);
 
-      getFavorites(clientId, parsedProfileId).then((response) => {
-        store.commit("setFavorites", response);
-        store.commit("setNextUrl", response.next_href);
-        this.$router.push("/player");
-      });
+      if (parsedProfileId) {
+        getFavorites(clientId, parsedProfileId).then((response) => {
+          store.commit("setFavorites", response);
+          store.commit("setNextUrl", response.next_href);
+          this.$router.push("/player");
+        });
+      }
     });
   },
 });
