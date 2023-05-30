@@ -72,12 +72,15 @@ export default Vue.extend({
         .then((responses) => {
           store.commit("setFavorites", responses[0]);
           store.commit("setUser", responses[1]);
+          store.commit("setNextUrl", this.getFavorites.next_href);
           const favoritesJSON = JSON.stringify(this.getFavorites);
           const userJSON = JSON.stringify(this.getUser);
           const profileIdJSON = JSON.stringify(this.getProfileId);
+          const nextUrlJSON = JSON.stringify(this.getFavorites.next_href);
           localStorage.setItem(LocalStorage.Favorites, favoritesJSON);
           localStorage.setItem(LocalStorage.User, userJSON);
           localStorage.setItem(LocalStorage.ProfileId, profileIdJSON);
+          localStorage.setItem(LocalStorage.NextUrl, nextUrlJSON);
           this.isFetching = false;
           this.$router.push("/player");
         })
