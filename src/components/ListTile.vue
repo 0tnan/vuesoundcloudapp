@@ -53,6 +53,7 @@ export default Vue.extend({
     display: flex;
     flex-direction: column;
     justify-content: center;
+    width: calc(100% - 7.5rem);
   }
 
   &-title {
