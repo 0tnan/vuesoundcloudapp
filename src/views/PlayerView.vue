@@ -10,7 +10,13 @@
       </div>
     </div>
     <div class="Player-search">
-      <input type="text" class="Player-searchInput" placeholder="search" />
+      <input
+        @input="onSearch"
+        type="text"
+        class="Player-searchInput"
+        placeholder="search"
+        v-model="searchQuery"
+      />
       <img src="@/assets/icons/search.svg" class="Player-searchIcon" />
       <button class="Player-searchRefresh">
         <img src="@/assets/icons/refresh.svg" />
@@ -41,51 +47,87 @@
         </button>
       </div>
     </div>
-    <transition mode="out-in" name="fade" appear>
-      <div
-        @scroll="checkScrollEnd"
-        v-if="gridEnabled"
-        key="grid"
-        id="queue"
-        class="Player-musicGrid"
-      >
-        <GridTile
-          v-for="track in tracklist"
-          :key="track.id"
-          :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
-          :title="track.title"
-          :artist="track.user.username"
-        ></GridTile>
-        <img
-          v-if="scrollEnd"
-          class="Player-loading"
-          lazy
-          src="@/assets/img/loading.gif"
-        />
-      </div>
-      <div
-        @scroll="checkScrollEnd"
-        v-else
-        key="list"
-        id="queue"
-        class="Player-musicList"
-        appear
-      >
-        <ListTile
-          v-for="track in tracklist"
-          :key="track.id"
-          :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
-          :title="track.title"
-          :artist="track.user.username"
-        ></ListTile>
-        <img
-          v-if="scrollEnd"
-          class="Player-loading"
-          lazy
-          src="@/assets/img/loading.gif"
-        />
-      </div>
-    </transition>
+    <div v-if="!searchQuery" class="Player-musicUnfiltered">
+      <transition mode="out-in" name="fade" appear>
+        <div
+          @scroll="checkScrollEnd"
+          v-if="gridEnabled"
+          key="grid"
+          id="queue"
+          class="Player-musicGrid"
+        >
+          <GridTile
+            v-for="track in tracklist"
+            :key="track.id"
+            :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
+            :title="track.title"
+            :artist="track.user.username"
+          ></GridTile>
+          <img
+            v-if="scrollEnd"
+            class="Player-loading"
+            lazy
+            src="@/assets/img/loading.gif"
+          />
+        </div>
+        <div
+          @scroll="checkScrollEnd"
+          v-else
+          key="list"
+          id="queue"
+          class="Player-musicList"
+          appear
+        >
+          <ListTile
+            v-for="track in tracklist"
+            :key="track.id"
+            :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
+            :title="track.title"
+            :artist="track.user.username"
+          ></ListTile>
+          <img
+            v-if="scrollEnd"
+            class="Player-loading"
+            lazy
+            src="@/assets/img/loading.gif"
+          />
+        </div>
+      </transition>
+    </div>
+    <div v-else class="Player-musicFiltered">
+      <transition mode="out-in" name="fade" appear>
+        <div v-if="gridEnabled" key="grid" id="queue" class="Player-musicGrid">
+          <GridTile
+            v-for="track in filteredTrackList"
+            :key="track.id"
+            :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
+            :title="track.title"
+            :artist="track.user.username"
+          ></GridTile>
+          <img
+            v-if="scrollEnd"
+            class="Player-loading"
+            lazy
+            src="@/assets/img/loading.gif"
+          />
+        </div>
+        <div v-else key="list" id="queue" class="Player-musicList" appear>
+          <ListTile
+            v-for="track in filteredTrackList"
+            :key="track.id"
+            :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
+            :title="track.title"
+            :artist="track.user.username"
+          ></ListTile>
+          <img
+            v-if="scrollEnd"
+            class="Player-loading"
+            lazy
+            src="@/assets/img/loading.gif"
+          />
+        </div>
+      </transition>
+    </div>
   </div>
 </template>
 
@@ -98,7 +140,6 @@ import GridTile from "@/components/GridTile.vue";
 import ListTile from "@/components/ListTile.vue";
 import { getNextFavorites } from "../utils/soundcloud-api";
 import store from "@/store";
-import { LocalStorage } from "@/enums/local-storage";
 import { debounce } from "lodash";
 
 export default Vue.extend({
@@ -111,17 +152,19 @@ export default Vue.extend({
       gridEnabled: true,
       tracklist: [] as Track[],
       scrollEnd: true,
+      searchQuery: "",
+      launchedRecursive: false,
     };
   },
   created() {
     this.updateFavorites = debounce(this.updateFavorites, 1000);
+    this.searchTracks = debounce(this.searchTracks, 500);
   },
   mounted() {
     const favorites = this.getFavorites as Favorites;
     favorites.collection.forEach((item) => {
       this.tracklist.push(item.track);
     });
-    console.log(this.tracklist);
   },
   computed: {
     ...mapGetters([
@@ -137,6 +180,14 @@ export default Vue.extend({
     avatarUrl(): string {
       return this.getUser.avatar_url;
     },
+    filteredTrackList(): Track[] {
+      const lowercaseQuery = this.searchQuery.toLocaleLowerCase();
+      return this.tracklist.filter(
+        (item) =>
+          item.title.toLocaleLowerCase().includes(lowercaseQuery) ||
+          item.user.username.toLocaleLowerCase().includes(lowercaseQuery)
+      );
+    },
   },
   methods: {
     switchToGrid() {
@@ -145,13 +196,15 @@ export default Vue.extend({
     switchToList() {
       this.gridEnabled = false;
     },
-    getFullScaleImage(url: string, avatar_url: string) {
+    getFullScaleImage(url: string, avatar_url: string): string | null {
       if (url) {
         const highDefinitionUrl = url.replace("-large", "-t500x500");
         return highDefinitionUrl;
       } else if (!url && !!avatar_url) {
         const highDefinitionUrl = avatar_url.replace("-large", "-t500x500");
         return highDefinitionUrl;
+      } else {
+        return null;
       }
     },
     checkScrollEnd() {
@@ -172,10 +225,29 @@ export default Vue.extend({
           });
           store.commit("addToFavorites", results.collection);
           store.commit("setNextUrl", results.next_href);
-          const favoritesJSON = JSON.stringify(this.getFavorites);
-          const nextUrlJSON = JSON.stringify(this.getNextUrl);
-          localStorage.setItem(LocalStorage.Favorites, favoritesJSON);
-          localStorage.setItem(LocalStorage.NextUrl, nextUrlJSON);
+        }
+      );
+    },
+    onSearch() {
+      this.searchTracks();
+    },
+    searchTracks() {
+      if (this.getNextUrl !== null && !this.launchedRecursive) {
+        this.launchedRecursive = true;
+        this.recursiveGetNextFavorites();
+      }
+    },
+    recursiveGetNextFavorites() {
+      getNextFavorites(this.getApiKey, this.getNextUrl).then(
+        (results: Favorites) => {
+          results.collection.forEach((item) => {
+            this.tracklist.push(item.track);
+          });
+          store.commit("addToFavorites", results.collection);
+          store.commit("setNextUrl", results.next_href);
+          if (this.getNextUrl !== null) {
+            this.recursiveGetNextFavorites();
+          }
         }
       );
     },
