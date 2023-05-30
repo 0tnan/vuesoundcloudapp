@@ -18,7 +18,12 @@
         v-model="searchQuery"
       />
       <img src="@/assets/icons/search.svg" class="Player-searchIcon" />
-      <button class="Player-searchRefresh">
+      <button
+        @click="onRefresh()"
+        class="Player-searchRefresh"
+        :class="{ 'Player-searchRefresh--on': isRefreshing }"
+        :disabled="refreshDisabled"
+      >
         <img src="@/assets/icons/refresh.svg" />
       </button>
     </div>
@@ -138,7 +143,7 @@ import Vue from "vue";
 import { mapGetters } from "vuex";
 import GridTile from "@/components/GridTile.vue";
 import ListTile from "@/components/ListTile.vue";
-import { getNextFavorites } from "../utils/soundcloud-api";
+import { getFavorites, getNextFavorites } from "../utils/soundcloud-api";
 import store from "@/store";
 import { debounce } from "lodash";
 
@@ -154,6 +159,8 @@ export default Vue.extend({
       scrollEnd: true,
       searchQuery: "",
       launchedRecursive: false,
+      isRefreshing: false,
+      refreshDisabled: false,
     };
   },
   created() {
@@ -161,10 +168,7 @@ export default Vue.extend({
     this.searchTracks = debounce(this.searchTracks, 500);
   },
   mounted() {
-    const favorites = this.getFavorites as Favorites;
-    favorites.collection.forEach((item) => {
-      this.tracklist.push(item.track);
-    });
+    this.populateFavorites();
   },
   computed: {
     ...mapGetters([
@@ -231,6 +235,25 @@ export default Vue.extend({
     onSearch() {
       this.searchTracks();
     },
+    onRefresh() {
+      this.isRefreshing = true;
+      this.refreshDisabled = true;
+      store.commit("setFavorites", {});
+      store.commit("setNextUrl", "");
+      this.tracklist = [];
+      getFavorites(this.getApiKey, this.getProfileId)
+        .then((response) => {
+          store.commit("setFavorites", response);
+          store.commit("setNextUrl", response.next_href);
+          this.populateFavorites();
+        })
+        .finally(() => {
+          setTimeout(() => {
+            this.isRefreshing = false;
+            this.refreshDisabled = false;
+          }, 1500);
+        });
+    },
     searchTracks() {
       if (this.getNextUrl !== null && !this.launchedRecursive) {
         this.launchedRecursive = true;
@@ -250,6 +273,12 @@ export default Vue.extend({
           }
         }
       );
+    },
+    populateFavorites() {
+      const favorites = this.getFavorites as Favorites;
+      favorites.collection.forEach((item) => {
+        this.tracklist.push(item.track);
+      });
     },
   },
   watch: {
@@ -333,6 +362,10 @@ export default Vue.extend({
       border-radius: 50%;
       height: 5rem;
       width: 5rem;
+
+      &--on {
+        animation: spin 1.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+      }
     }
   }
 
