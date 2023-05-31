@@ -1,5 +1,10 @@
 <template>
   <div class="Player">
+    <DraggablePlayer
+      :hide-draggable-player="hideDraggablePlayer"
+      @unhide="unhide"
+      @disallowScroll="disableScroll"
+    ></DraggablePlayer>
     <div class="Player-topContainer">
       <div class="Player-text">
         <p class="Player-fetching">Fetching from</p>
@@ -55,7 +60,7 @@
     <div v-if="!searchQuery" class="Player-musicUnfiltered">
       <transition mode="out-in" name="fade" appear>
         <div
-          @scroll="checkScrollEnd"
+          @scroll="onScroll"
           v-if="gridEnabled"
           key="grid"
           id="queue"
@@ -76,7 +81,7 @@
           />
         </div>
         <div
-          @scroll="checkScrollEnd"
+          @scroll="onScroll"
           v-else
           key="list"
           id="queue"
@@ -143,6 +148,7 @@ import Vue from "vue";
 import { mapGetters } from "vuex";
 import GridTile from "@/components/GridTile.vue";
 import ListTile from "@/components/ListTile.vue";
+import DraggablePlayer from "@/components/DraggablePlayer.vue";
 import { getFavorites, getNextFavorites } from "../utils/soundcloud-api";
 import store from "@/store";
 import { debounce } from "lodash";
@@ -151,6 +157,7 @@ export default Vue.extend({
   components: {
     GridTile,
     ListTile,
+    DraggablePlayer,
   },
   data() {
     return {
@@ -161,6 +168,7 @@ export default Vue.extend({
       launchedRecursive: false,
       isRefreshing: false,
       refreshDisabled: false,
+      hideDraggablePlayer: false,
     };
   },
   created() {
@@ -211,7 +219,8 @@ export default Vue.extend({
         return null;
       }
     },
-    checkScrollEnd() {
+    onScroll() {
+      this.hideDraggablePlayer = true;
       const queue = document.getElementById("queue");
       if (queue) {
         const isScrollEnd =
@@ -279,6 +288,17 @@ export default Vue.extend({
       favorites.collection.forEach((item) => {
         this.tracklist.push(item.track);
       });
+    },
+    unhide(value: boolean) {
+      this.hideDraggablePlayer = value;
+    },
+    disableScroll(value: boolean) {
+      const queue = document.getElementById("queue");
+      if (value && queue) {
+        queue.style.overflowY = "hidden";
+      } else if (!value && queue) {
+        queue.style.overflowY = "auto";
+      }
     },
   },
   watch: {
