@@ -174,6 +174,7 @@ export default Vue.extend({
   created() {
     this.updateFavorites = debounce(this.updateFavorites, 1000);
     this.searchTracks = debounce(this.searchTracks, 500);
+    this.forceUpdate = debounce(this.forceUpdate, 1000);
   },
   mounted() {
     this.populateFavorites();
@@ -246,12 +247,14 @@ export default Vue.extend({
       const unfiltered = document.getElementById("unfiltered");
       const queue = document.getElementById("queue");
       if (
-        this.getFavorites &&
+        !!this.getFavorites &&
+        !!this.getNextUrl &&
         unfiltered &&
         queue &&
-        queue.offsetHeight <= unfiltered.offsetHeight
+        queue.scrollHeight <= unfiltered.offsetHeight
       ) {
         this.updateFavorites();
+        this.forceUpdate();
       }
     },
     onSearch() {
