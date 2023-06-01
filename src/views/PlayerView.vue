@@ -57,7 +57,7 @@
         </button>
       </div>
     </div>
-    <div v-if="!searchQuery" class="Player-musicUnfiltered">
+    <div v-if="!searchQuery" id="unfiltered" class="Player-musicUnfiltered">
       <transition mode="out-in" name="fade" appear>
         <div
           @scroll="onScroll"
@@ -177,6 +177,7 @@ export default Vue.extend({
   },
   mounted() {
     this.populateFavorites();
+    this.forceUpdate();
   },
   computed: {
     ...mapGetters([
@@ -241,6 +242,18 @@ export default Vue.extend({
         }
       );
     },
+    forceUpdate() {
+      const unfiltered = document.getElementById("unfiltered");
+      const queue = document.getElementById("queue");
+      if (
+        this.getFavorites &&
+        unfiltered &&
+        queue &&
+        queue.offsetHeight <= unfiltered.offsetHeight
+      ) {
+        this.updateFavorites();
+      }
+    },
     onSearch() {
       this.searchTracks();
     },
@@ -262,6 +275,7 @@ export default Vue.extend({
             this.refreshDisabled = false;
           }, 1500);
         });
+      this.forceUpdate();
     },
     searchTracks() {
       if (this.getNextUrl !== null && !this.launchedRecursive) {
