@@ -20,6 +20,8 @@ import Vue from "vue";
 const MAX_TOP = 10;
 const INITIAL_POSITION = "88.5%";
 const TRANSITION = "all 0.5s ease-in";
+const DEFAULT_OPACITY = 98;
+const TOTAL_OPACITY = 100;
 
 export default Vue.extend({
   data() {
@@ -45,22 +47,53 @@ export default Vue.extend({
       this.$emit("unhide", false);
       if (this.isDragging) {
         const currentY = e.touches[0].clientY;
-        this.style = { top: `${currentY}px`, transition: "none" };
+        this.style = {
+          top: `${currentY}px`,
+          transition: "none",
+          opacity: `${TOTAL_OPACITY}%`,
+        };
       }
     },
     endDrag(e: TouchEvent) {
       this.isDragging = false;
+
       const currentY = e.changedTouches[0].clientY;
       const direction = currentY - this.startDragY;
+      const thirdScreen = window.innerHeight / 3;
+      const twoThirdScreen = (window.innerHeight * 2) / 3;
+
       if (direction < 0) {
-        // Scrolling Up, reach MAX_TOP
-        this.style = { top: `${MAX_TOP}px`, transition: TRANSITION };
+        // Dragging Up, reach MAX_TOP
+        if (currentY > twoThirdScreen) {
+          // Dragging up but didn't drag up to two third of the screen
+          this.style = {
+            top: `${INITIAL_POSITION}`,
+            transition: TRANSITION,
+            opacity: `${DEFAULT_OPACITY}%`,
+          };
+        } else {
+          this.style = {
+            top: `${MAX_TOP}px`,
+            transition: TRANSITION,
+            opacity: `${TOTAL_OPACITY}%`,
+          };
+        }
       } else {
-        // Scrolling Down, reach INITIAL_POSITION
-        this.style = {
-          top: `${INITIAL_POSITION}`,
-          transition: TRANSITION,
-        };
+        // Dragging Down, reach INITIAL_POSITION
+        if (currentY < thirdScreen) {
+          // Dragging Down but didn't drag to a third of the screen height
+          this.style = {
+            top: `${MAX_TOP}px`,
+            transition: TRANSITION,
+            opacity: `${TOTAL_OPACITY}%`,
+          };
+        } else {
+          this.style = {
+            top: `${INITIAL_POSITION}`,
+            transition: TRANSITION,
+            opacity: `${DEFAULT_OPACITY}%`,
+          };
+        }
       }
       this.$emit("disallowScroll", false);
     },
@@ -88,6 +121,7 @@ export default Vue.extend({
   background: $light;
   border-radius: 3rem 3rem 0 0;
   transition: all 0.5s ease-in;
+  opacity: 98%;
 
   &--hide {
     top: 98%;
