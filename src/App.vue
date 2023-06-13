@@ -45,5 +45,6 @@ export default Vue.extend({
 
 .App {
   height: 100%;
+  padding: 5rem 0;
 }
 </style>

@@ -72,3 +72,26 @@ export async function getNextFavorites(
       });
   });
 }
+
+export async function getMediaFinalUrl(
+  apiKey: string,
+  audioUrl: string
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const options = {
+      url: `${audioUrl}?client_id=${apiKey}`,
+    };
+    CapacitorHttp.get(options)
+      .then((response) => {
+        const results = response.data;
+        if (results) {
+          resolve(results);
+        } else {
+          reject(results);
+        }
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+}
