@@ -5,7 +5,7 @@
     :class="{ 'DraggablePlayer--hide': hideDraggablePlayer }"
     :style="draggableStyle"
   >
-    <div class="DraggablePlayer-dragButton"></div>
+    <div class="DraggablePlayer-dragButton" :style="buttonStyle"></div>
     <div
       @touchstart="startDrag"
       @touchmove="onDrag"
@@ -17,7 +17,24 @@
       :class="{ 'DraggablePlayer-miniPlayer--hide': hideMiniPlayer }"
       :style="miniPlayerStyle"
     >
-      <p>A bit quiet here...</p>
+      <transition name="fade">
+        <p v-if="!hasCurrentSong">A bit quiet here...</p>
+        <div v-else class="DraggablePlayer-miniPlayerSong">
+          <img
+            lazy
+            :src="getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)"
+            class="DraggablePlayer-miniPlayerArtwork"
+          />
+          <div class="DraggablePlayer-miniPlayerInfos">
+            <p v-if="currentTitle" class="DraggablePlayer-miniPlayerTitle">
+              {{ currentTitle }}
+            </p>
+            <p v-if="currentArtist" class="DraggablePlayer-miniPlayerArtist">
+              {{ currentArtist }}
+            </p>
+          </div>
+        </div>
+      </transition>
       <div class="DraggablePlayer-miniPlayerControls">
         <button class="DraggablePlayer-miniPlayerPrevious" @click="previous">
           <img
@@ -25,9 +42,19 @@
             class="DraggablePlayer-contentTopIcon"
           />
         </button>
-        <button class="DraggablePlayer-miniPlayerPlay" @click="play">
+        <button
+          v-if="paused"
+          class="DraggablePlayer-miniPlayerPlay"
+          @click="play"
+        >
           <img
             src="@/assets/icons/playLight.svg"
+            class="DraggablePlayer-contentTopIcon"
+          />
+        </button>
+        <button v-else class="DraggablePlayer-miniPlayerPause" @click="pause">
+          <img
+            src="@/assets/icons/pauseLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
         </button>
@@ -45,7 +72,10 @@
       :style="contentStyle"
     >
       <div class="DraggablePlayer-contentTop">
-        <button class="DraggablePlayer-contentTopReturn" @click="dragDown">
+        <button
+          class="DraggablePlayer-contentTopReturn Touch"
+          @click="dragDown"
+        >
           <img
             src="@/assets/icons/returnLight.svg"
             class="DraggablePlayer-contentTopIcon"
@@ -53,15 +83,57 @@
         </button>
         <p class="DraggablePlayer-contentTopText">Playing Now</p>
       </div>
-      <div class="DraggablePlayer-contentSlider"></div>
+      <div class="DraggablePlayer-contentSlider">
+        <div class="DraggablePlayer-contentSliderCurrent">
+          <p
+            class="DraggablePlayer-contentSliderCurrentEmpty"
+            v-if="!hasCurrentSong"
+          >
+            A bit quiet here...
+          </p>
+          <div
+            v-else
+            class="DraggablePlayer-contentSliderCurrentImageContainer"
+          >
+            <img
+              lazy
+              :src="
+                getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)
+              "
+              class="DraggablePlayer-contentSliderCurrentArtwork"
+            />
+            <img
+              lazy
+              :src="
+                getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)
+              "
+              class="DraggablePlayer-contentSliderCurrentArtwork--blurred"
+            />
+          </div>
+          <div class="DraggablePlayer-contentSliderCurrentInfos">
+            <p
+              v-if="currentTitle"
+              class="DraggablePlayer-contentSliderCurrentTitle"
+            >
+              {{ currentTitle }}
+            </p>
+            <p
+              v-if="currentArtist"
+              class="DraggablePlayer-contentSliderCurrentArtist"
+            >
+              {{ currentArtist }}
+            </p>
+          </div>
+        </div>
+      </div>
       <div class="DraggablePlayer-contentAdditionalControls">
-        <button class="DraggablePlayer-contentRepeat" @click="repeat">
+        <button class="DraggablePlayer-contentRepeat Touch" @click="repeat">
           <img
             src="@/assets/icons/loopLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
         </button>
-        <button class="DraggablePlayer-contentShuffle" @click="shuffle">
+        <button class="DraggablePlayer-contentShuffle Touch" @click="shuffle">
           <img
             src="@/assets/icons/shuffleLight.svg"
             class="DraggablePlayer-contentTopIcon"
@@ -70,16 +142,21 @@
       </div>
       <div class="DraggablePlayer-contentProgressBar">
         <div class="DraggablePlayer-contentDuration">
-          <p>{{ initialRemaining }}</p>
-          <p>{{ initialDuration }}</p>
+          <p>{{ displayedCurrentTime }}</p>
+          <p v-if="!currentSongDuration">{{ initialDuration }}</p>
+          <p v-else>{{ computeTime(currentSongDuration) }}</p>
         </div>
-        <div class="DraggablePlayer-contentBar">
-          <div class="DraggablePlayer-contentDot"></div>
+        <div id="bar" class="DraggablePlayer-contentBar">
+          <div
+            id="dot"
+            class="DraggablePlayer-contentDot"
+            :style="dotStyle"
+          ></div>
         </div>
       </div>
       <div class="DraggablePlayer-contentControls">
         <button
-          class="DraggablePlayer-contentControlsPrevious"
+          class="DraggablePlayer-contentControlsPrevious Touch"
           @click="previous"
         >
           <img
@@ -87,13 +164,27 @@
             class="DraggablePlayer-contentControlsIcon"
           />
         </button>
-        <button class="DraggablePlayer-contentControlsPlay" @click="play">
+        <button
+          v-if="paused"
+          class="DraggablePlayer-contentControlsPlay Touch"
+          @click="play"
+        >
           <img
             src="@/assets/icons/playLight.svg"
             class="DraggablePlayer-contentControlsIcon"
           />
         </button>
-        <button class="DraggablePlayer-contentControlsNext" @click="next">
+        <button
+          v-else
+          class="DraggablePlayer-contentControlsPause Touch"
+          @click="pause"
+        >
+          <img
+            src="@/assets/icons/pauseLight.svg"
+            class="DraggablePlayer-contentControlsIcon"
+          />
+        </button>
+        <button class="DraggablePlayer-contentControlsNext Touch" @click="next">
           <img
             src="@/assets/icons/nextLight.svg"
             class="DraggablePlayer-contentControlsIcon"
@@ -106,27 +197,41 @@
 
 <script lang="ts">
 import Vue from "vue";
+import { mapGetters } from "vuex";
 
-const MAX_TOP = 10;
-const INITIAL_POSITION = "88.5%";
+const INITIAL_POSITION = "12%";
 const TRANSITION = "all 0.5s ease-in";
+const BUTTON_TRANSFORM = "translateX(-50%) translateY(-2rem)";
+const BUTTON_INITIAL = "translateX(-50%) translateY(0)";
 const DEFAULT_OPACITY = 98;
 const TOTAL_OPACITY = 100;
+const INITIAL_DOTSTYLE = "translateX(0) translateY(-50%)";
 
 export default Vue.extend({
   data() {
     return {
+      viewportHeight: 0,
+      maxHeight: 0,
+      topBound: 0,
       startDragY: 0,
       isDragging: false,
       draggableStyle: {},
       contentStyle: {},
       miniPlayerStyle: {},
+      buttonStyle: {},
+      dotStyle: {},
+      barWidth: 0,
       initialPosition: 0,
       currentPosition: 0,
       hideContent: true,
       hideMiniPlayer: false,
       initialDuration: "00:00",
       initialRemaining: "00:00",
+      audio: {} as HTMLAudioElement,
+      paused: true,
+      currentTime: 0,
+      displayedCurrentTime: "00:00",
+      intervalId: 0,
     };
   },
   props: {
@@ -136,10 +241,46 @@ export default Vue.extend({
     },
   },
   mounted() {
+    this.viewportHeight = window.innerHeight;
+
+    const player = document.getElementById("player");
     const draggable = document.getElementById("draggable");
-    if (draggable) {
-      this.initialPosition = draggable.offsetTop;
+    const bar = document.getElementById("bar");
+
+    if (bar && draggable && player) {
+      this.barWidth = bar.offsetWidth;
+      this.audio = new Audio("");
+      this.maxHeight = player.offsetHeight;
+      this.topBound = this.viewportHeight - this.maxHeight;
+      console.log(this.topBound);
     }
+
+    this.checkAudioStatus();
+  },
+  computed: {
+    ...mapGetters(["getCurrentMediaUrl", "getCurrentSong"]),
+    hasCurrentSong(): boolean {
+      return this.getCurrentMediaUrl ? true : false;
+    },
+    currentMediaArtwork(): string {
+      return this.getCurrentSong ? this.getCurrentSong.artwork_url : null;
+    },
+    currentAvatarArtwork(): string {
+      return this.getCurrentSong.user
+        ? this.getCurrentSong.user.avatar_url
+        : null;
+    },
+    currentArtist(): string {
+      return this.getCurrentSong.user
+        ? this.getCurrentSong.user.username
+        : null;
+    },
+    currentTitle(): string {
+      return this.getCurrentSong ? this.getCurrentSong.title : null;
+    },
+    currentSongDuration(): number {
+      return this.getCurrentSong.full_duration;
+    },
   },
   methods: {
     startDrag(e: TouchEvent) {
@@ -150,15 +291,15 @@ export default Vue.extend({
     onDrag(e: TouchEvent) {
       this.$emit("unhide", false);
       this.currentPosition = e.touches[0].clientY;
-      if (this.isDragging && this.currentPosition >= 0) {
+      if (this.isDragging && this.currentPosition >= this.topBound) {
         this.draggableStyle = {
-          top: `${this.currentPosition}px`,
+          height: `${this.viewportHeight - this.currentPosition}px`,
           transition: "none",
           opacity: `${TOTAL_OPACITY}%`,
         };
         let positionFraction =
-          (this.currentPosition - this.initialPosition) /
-          (MAX_TOP - this.initialPosition);
+          (this.viewportHeight - this.topBound - this.currentPosition) /
+          this.viewportHeight;
         if (positionFraction < 0) {
           positionFraction = 0;
         }
@@ -203,7 +344,7 @@ export default Vue.extend({
     },
     dragDown() {
       this.draggableStyle = {
-        top: `${INITIAL_POSITION}`,
+        height: `${INITIAL_POSITION}`,
         transition: TRANSITION,
         opacity: `${DEFAULT_OPACITY}%`,
       };
@@ -216,10 +357,13 @@ export default Vue.extend({
         opacity: 1,
         transition: TRANSITION,
       };
+      this.buttonStyle = {
+        transform: BUTTON_TRANSFORM,
+      };
     },
     dragUp() {
       this.draggableStyle = {
-        top: `${MAX_TOP}px`,
+        height: `${this.maxHeight}px`,
         transition: TRANSITION,
         opacity: `${TOTAL_OPACITY}%`,
       };
@@ -232,12 +376,46 @@ export default Vue.extend({
         opacity: 0,
         transition: TRANSITION,
       };
+      this.buttonStyle = {
+        transform: BUTTON_INITIAL,
+      };
     },
     previous() {
       // do something
     },
     play() {
-      // do something
+      if (!!this.audio && !!this.getCurrentMediaUrl) {
+        this.audio.play();
+        if (this.currentTime >= this.currentSongDuration) {
+          this.currentTime = 0;
+          this.resetDotAnimation();
+        }
+        if (
+          this.currentTime > 0 &&
+          this.currentTime < this.currentSongDuration
+        ) {
+          const remainingDuration = this.currentSongDuration - this.currentTime;
+          this.dotStyle = {
+            transform: `translateX(${this.barWidth - 20}px) translateY(-50%)`,
+            transition: `all ${remainingDuration}ms linear`,
+          };
+        }
+      }
+    },
+    pause() {
+      if (!!this.audio && !!this.getCurrentMediaUrl) {
+        this.audio.pause();
+        if (
+          this.currentTime > 0 &&
+          this.currentTime < this.currentSongDuration
+        ) {
+          const dotPosition = this.getDotPosition();
+          this.dotStyle = {
+            transform: `translateX(${dotPosition}px) translateY(-50%)`,
+            transition: "",
+          };
+        }
+      }
     },
     next() {
       // do something
@@ -248,12 +426,119 @@ export default Vue.extend({
     shuffle() {
       // do something
     },
+    checkAudioStatus() {
+      setInterval(() => {
+        this.paused = this.audio && this.audio.paused;
+      }, 100);
+    },
+    getFullScaleImage(url: string, avatar_url: string): string | undefined {
+      if (url) {
+        const highDefinitionUrl = url.replace("-large", "-t500x500");
+        return highDefinitionUrl;
+      } else if (!url && !!avatar_url) {
+        const highDefinitionUrl = avatar_url.replace("-large", "-t500x500");
+        return highDefinitionUrl;
+      } else {
+        return undefined;
+      }
+    },
+    updateTime() {
+      this.currentTime = this.audio.currentTime;
+      this.displayedCurrentTime = this.computeTime(
+        Math.trunc(this.currentTime * 1000)
+      );
+    },
+    onPause() {
+      if (this.currentTime > 0 && this.currentTime < this.currentSongDuration) {
+        const dotPosition = this.getDotPosition();
+        this.dotStyle = {
+          transform: `translateX(${dotPosition}px) translateY(-50%)`,
+          transition: "",
+        };
+      }
+    },
+    onEnded() {
+      this.dotStyle = {
+        transform: `${INITIAL_DOTSTYLE}`,
+        transition: "",
+      };
+    },
+    computeTime(time: number): string {
+      if (time < 1000 || !time) {
+        return "00:00";
+      }
+      let totalSeconds = Math.floor(time / 1000);
+      let hours = 0;
+      let minutes = 0;
+
+      if (totalSeconds >= 3600) {
+        hours = Math.floor(totalSeconds / 3600);
+        totalSeconds = totalSeconds % 3600;
+      }
+
+      if (totalSeconds >= 60) {
+        minutes = Math.floor(totalSeconds / 60);
+        totalSeconds = totalSeconds % 60;
+      }
+
+      const paddedHours = String(hours).padStart(2, "0");
+      const paddedMinutes = String(minutes).padStart(2, "0");
+      const paddedSeconds = String(totalSeconds).padStart(2, "0");
+
+      if (hours > 0) {
+        return `${paddedHours}:${paddedMinutes}:${paddedSeconds}`;
+      } else {
+        return `${paddedMinutes}:${paddedSeconds}`;
+      }
+    },
+    getDotPosition(): number {
+      const dot = document.getElementById("dot");
+      if (dot) {
+        const style = window.getComputedStyle(dot);
+        const transform = style.transform;
+        const values = transform.split("(")[1].split(")")[0].split(",");
+        const dotPosition = parseFloat(values[4]);
+        return dotPosition;
+      }
+      return 0;
+    },
+    resetDotAnimation() {
+      this.dotStyle = {
+        transform: `${INITIAL_DOTSTYLE}`,
+        transition: "",
+      };
+      setTimeout(() => {
+        this.dotStyle = {
+          transform: `translateX(${this.barWidth - 20}px) translateY(-50%)`,
+          transition: `all ${this.currentSongDuration}ms linear`,
+        };
+      }, 100);
+    },
   },
   watch: {
     hideDraggablePlayer(newVal) {
       if (newVal) {
         this.draggableStyle = {};
       }
+    },
+    getCurrentMediaUrl: {
+      handler(newVal) {
+        if (this.audio) {
+          this.audio.removeEventListener("timeupdate", this.updateTime);
+          this.audio.removeEventListener("pause", this.onPause);
+          this.audio.removeEventListener("ended", this.onEnded);
+          this.audio.pause();
+          this.audio.currentTime = 0;
+          this.audio = new Audio(newVal.url);
+          this.audio.addEventListener("timeupdate", this.updateTime);
+          this.audio.addEventListener("pause", this.onPause);
+          this.audio.addEventListener("ended", this.onEnded);
+          this.audio.play();
+          this.currentTime = 0;
+          this.resetDotAnimation();
+        }
+      },
+      deep: true,
     },
   },
 });
@@ -265,9 +550,9 @@ export default Vue.extend({
 
   position: absolute;
   left: 1.5rem;
-  top: 88.5%;
-  z-index: 1;
-  height: 100vh;
+  bottom: 0;
+  z-index: 999;
+  height: 12%;
   width: calc(100vw - 3rem);
   background: $light;
   border-radius: 3rem 3rem 0 0;
@@ -275,7 +560,7 @@ export default Vue.extend({
   opacity: 98%;
 
   &--hide {
-    top: 98%;
+    height: 2%;
   }
 
   &-drag {
@@ -286,8 +571,9 @@ export default Vue.extend({
       border-radius: 5rem;
       background: $black;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateY(-2rem);
       top: 0.5rem;
+      transition: all 0.5s;
     }
 
     &Area {
@@ -295,13 +581,15 @@ export default Vue.extend({
       top: 0;
       left: 0;
       width: 100%;
-      height: 3rem;
-      z-index: 2;
+      height: 6rem;
+      transform: translateY(-3rem);
+      z-index: 999;
     }
   }
 
   &-miniPlayer {
     position: absolute;
+    z-index: 1;
     width: 100%;
     padding: 1.5rem 3rem 0 1rem;
     height: 7.5rem;
@@ -310,17 +598,58 @@ export default Vue.extend({
     align-items: center;
     transition: all 0.5s;
 
-    &Previous {
-      margin-right: 2.5rem;
+    &Controls {
+      display: flex;
     }
 
-    &Next {
-      margin-left: 2.5rem;
+    &Previous,
+    &Next,
+    &Pause,
+    &Play {
+      padding: 1.2rem;
+      min-height: 4rem;
+      min-width: 4rem;
+    }
+
+    &Song {
+      display: flex;
+      align-items: center;
+      min-width: calc(100% - 9.5rem);
+    }
+
+    &Infos {
+      display: flex;
+      flex-direction: column;
+      max-width: calc(100% - 9rem);
+    }
+
+    &Artwork {
+      width: 7.5rem;
+      height: 7.5rem;
+      border-radius: 1.5rem;
+      margin-right: 1rem;
+    }
+
+    &Artist {
+      font-size: $s;
+    }
+
+    &Title {
+      font-weight: 600;
+      font-size: $m;
+      margin-bottom: 0.2rem;
+    }
+
+    &Artist,
+    &Title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 
   &-content {
-    padding: 5rem 0;
+    padding: 5rem 0 0;
     height: 100%;
     transition: all 0.5s;
     display: flex;
@@ -336,10 +665,11 @@ export default Vue.extend({
       align-items: center;
       position: relative;
       padding: 0 3rem;
+      margin-bottom: 1.5rem;
 
       &Return {
         position: absolute;
-        left: 3rem;
+        left: 0.6rem;
       }
 
       &Text {
@@ -352,12 +682,69 @@ export default Vue.extend({
 
     &Slider {
       height: 37.5rem;
+      padding: 0 2rem;
+
+      &Current {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+
+        &Empty {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+        }
+
+        &ImageContainer {
+          position: relative;
+        }
+
+        &Artwork {
+          position: relative;
+          z-index: 2;
+
+          &--blurred {
+            position: absolute;
+            left: 0;
+            z-index: 1;
+            filter: blur(1rem);
+            transform: scale(1.05) translateY(1rem);
+            opacity: 0.7;
+          }
+        }
+
+        &Artwork,
+        &Artwork--blurred {
+          height: 30rem;
+          width: 30rem;
+          border-radius: 3rem;
+        }
+
+        &Infos {
+          margin-top: 4.5rem;
+          text-align: center;
+          line-height: 2.2rem;
+        }
+
+        &Title {
+          font-size: $xl;
+          font-weight: 600;
+          margin-bottom: 1rem;
+        }
+
+        &Artist {
+          font-size: $l;
+          font-weight: 300;
+        }
+      }
     }
 
-    &AdditionalControls,
     &ProgressBar {
       width: 100%;
       padding: 0 2rem;
+      margin-bottom: 1.5rem;
     }
 
     &AdditionalControls,
@@ -397,7 +784,14 @@ export default Vue.extend({
     }
 
     &Controls {
-      margin: 0 25%;
+      margin: 0 6rem;
+
+      &Play,
+      &Previous,
+      &Next {
+        min-width: 8rem;
+        min-height: 8rem;
+      }
 
       &Icon {
         height: 2.5rem;

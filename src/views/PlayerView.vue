@@ -1,5 +1,5 @@
 <template>
-  <div class="Player">
+  <div id="player" class="Player">
     <DraggablePlayer
       :hide-draggable-player="hideDraggablePlayer"
       @unhide="unhide"
@@ -24,7 +24,7 @@
       />
       <img src="@/assets/icons/search.svg" class="Player-searchIcon" />
       <button
-        @click="onRefresh()"
+        @touchend.prevent="onRefresh"
         class="Player-searchRefresh"
         :class="{ 'Player-searchRefresh--on': isRefreshing }"
         :disabled="refreshDisabled"
@@ -36,23 +36,31 @@
       <div class="Player-viewSwitchTitle">Favorites</div>
       <div class="Player-viewSwitchIcons">
         <button
-          @click="switchToGrid()"
+          @touchend.prevent="switchToGrid"
           v-if="gridEnabled"
           class="Player-viewSwitchGrid"
         >
           <img src="@/assets/icons/gridLightEnabled.svg" />
         </button>
-        <button @click="switchToGrid()" v-else class="Player-viewSwitchGrid">
+        <button
+          @touchend.prevent="switchToGrid"
+          v-else
+          class="Player-viewSwitchGrid"
+        >
           <img src="@/assets/icons/gridLightDisabled.svg" />
         </button>
         <button
-          @click="switchToList()"
+          @touchend.prevent="switchToList"
           v-if="!gridEnabled"
           class="Player-viewSwitchList"
         >
           <img src="@/assets/icons/listLightEnabled.svg" />
         </button>
-        <button @click="switchToList()" v-else class="Player-viewSwitchList">
+        <button
+          @touchend.prevent="switchToList"
+          v-else
+          class="Player-viewSwitchList"
+        >
           <img src="@/assets/icons/listLightDisabled.svg" />
         </button>
       </div>
@@ -69,16 +77,15 @@
           <GridTile
             v-for="track in tracklist"
             :key="track.id"
-            :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
-            :title="track.title"
-            :artist="track.user.username"
+            :track="track"
           ></GridTile>
-          <img
-            v-if="scrollEnd"
-            class="Player-loading"
-            lazy
-            src="@/assets/img/loading.gif"
-          />
+          <div v-if="!scrollEnd" class="Player-loadingContainer">
+            <img
+              class="Player-loadingIcon"
+              lazy
+              src="@/assets/img/loading.gif"
+            />
+          </div>
         </div>
         <div
           @scroll="onScroll"
@@ -91,50 +98,60 @@
           <ListTile
             v-for="track in tracklist"
             :key="track.id"
-            :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
-            :title="track.title"
-            :artist="track.user.username"
+            :track="track"
           ></ListTile>
-          <img
-            v-if="scrollEnd"
-            class="Player-loading"
-            lazy
-            src="@/assets/img/loading.gif"
-          />
+          <div v-if="!scrollEnd" class="Player-loadingContainer">
+            <img
+              class="Player-loadingIcon"
+              lazy
+              src="@/assets/img/loading.gif"
+            />
+          </div>
         </div>
       </transition>
     </div>
     <div v-else class="Player-musicFiltered">
       <transition mode="out-in" name="fade" appear>
-        <div v-if="gridEnabled" key="grid" id="queue" class="Player-musicGrid">
+        <div
+          @scroll="onScroll"
+          v-if="gridEnabled"
+          key="grid"
+          id="queue"
+          class="Player-musicGrid"
+        >
           <GridTile
             v-for="track in filteredTrackList"
             :key="track.id"
-            :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
-            :title="track.title"
-            :artist="track.user.username"
+            :track="track"
           ></GridTile>
-          <img
-            v-if="scrollEnd"
-            class="Player-loading"
-            lazy
-            src="@/assets/img/loading.gif"
-          />
+          <div v-if="!scrollEnd" class="Player-loadingContainer">
+            <img
+              class="Player-loadingIcon"
+              lazy
+              src="@/assets/img/loading.gif"
+            />
+          </div>
         </div>
-        <div v-else key="list" id="queue" class="Player-musicList" appear>
+        <div
+          @scroll="onScroll"
+          v-else
+          key="list"
+          id="queue"
+          class="Player-musicList"
+          appear
+        >
           <ListTile
             v-for="track in filteredTrackList"
             :key="track.id"
-            :src="getFullScaleImage(track.artwork_url, track.user.avatar_url)"
-            :title="track.title"
-            :artist="track.user.username"
+            :track="track"
           ></ListTile>
-          <img
-            v-if="scrollEnd"
-            class="Player-loading"
-            lazy
-            src="@/assets/img/loading.gif"
-          />
+          <div v-if="!scrollEnd" class="Player-loadingContainer">
+            <img
+              class="Player-loadingIcon"
+              lazy
+              src="@/assets/img/loading.gif"
+            />
+          </div>
         </div>
       </transition>
     </div>
@@ -163,7 +180,7 @@ export default Vue.extend({
     return {
       gridEnabled: true,
       tracklist: [] as Track[],
-      scrollEnd: true,
+      scrollEnd: false,
       searchQuery: "",
       launchedRecursive: false,
       isRefreshing: false,
@@ -210,17 +227,6 @@ export default Vue.extend({
     switchToList() {
       this.gridEnabled = false;
     },
-    getFullScaleImage(url: string, avatar_url: string): string | null {
-      if (url) {
-        const highDefinitionUrl = url.replace("-large", "-t500x500");
-        return highDefinitionUrl;
-      } else if (!url && !!avatar_url) {
-        const highDefinitionUrl = avatar_url.replace("-large", "-t500x500");
-        return highDefinitionUrl;
-      } else {
-        return null;
-      }
-    },
     onScroll() {
       this.hideDraggablePlayer = true;
       const queue = document.getElementById("queue");
@@ -263,6 +269,8 @@ export default Vue.extend({
     onRefresh() {
       this.isRefreshing = true;
       this.refreshDisabled = true;
+      this.scrollEnd = false;
+      this.launchedRecursive = false;
       store.commit("setFavorites", {});
       store.commit("setNextUrl", "");
       this.tracklist = [];
@@ -278,6 +286,9 @@ export default Vue.extend({
             this.refreshDisabled = false;
           }, 1500);
         });
+      if (this.searchQuery) {
+        this.searchTracks();
+      }
       this.forceUpdate();
     },
     searchTracks() {
@@ -321,7 +332,7 @@ export default Vue.extend({
   watch: {
     getNextUrl(newVal) {
       if (newVal === null) {
-        this.scrollEnd = false;
+        this.scrollEnd = true;
       }
     },
   },
@@ -333,11 +344,19 @@ export default Vue.extend({
   padding: 4rem 2.5rem;
   height: 100%;
   position: relative;
+  overflow: hidden;
 
   &-loading {
-    margin: 0 auto;
-    height: 5rem;
-    width: 5rem;
+    &Container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    &Icon {
+      height: 5rem;
+      width: 5rem;
+    }
   }
 
   &-top {
@@ -415,6 +434,7 @@ export default Vue.extend({
     &Icons {
       display: flex;
       align-items: center;
+      margin-right: 1rem;
     }
 
     &Title {
@@ -432,7 +452,7 @@ export default Vue.extend({
     margin-top: 2.5rem;
     overflow-y: auto;
     overflow-x: hidden;
-    height: calc(100vh - 26rem);
+    height: calc(100vh - 37rem);
     display: flex;
   }
 

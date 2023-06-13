@@ -1,28 +1,20 @@
 <template>
-  <div class="GridTile">
-    <img lazy class="GridTile-cover" :src="src" />
+  <div @click="setSong(track)" class="GridTile">
+    <img
+      lazy
+      class="GridTile-cover"
+      :src="getFullScaleImage(artwork, avatar)"
+    />
     <p class="GridTile-title">{{ title }}</p>
-    <p class="GridTile-artist">by {{ artist }}</p>
+    <p class="GridTile-artist">{{ artist }}</p>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from "vue";
+import TrackMixin from "@/mixins/track";
 export default Vue.extend({
-  props: {
-    src: {
-      type: String,
-      required: true,
-    },
-    title: {
-      type: String,
-      required: true,
-    },
-    artist: {
-      type: String,
-      required: true,
-    },
-  },
+  mixins: [TrackMixin],
 });
 </script>
 

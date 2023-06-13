@@ -1,30 +1,22 @@
 <template>
-  <div class="ListTile">
-    <img lazy class="ListTile-cover" :src="src" />
+  <div class="ListTile" @click="setSong(track)">
+    <img
+      lazy
+      class="ListTile-cover"
+      :src="getFullScaleImage(artwork, avatar)"
+    />
     <div class="ListTile-text">
       <p class="ListTile-title">{{ title }}</p>
-      <p class="ListTile-artist">by {{ artist }}</p>
+      <p class="ListTile-artist">{{ artist }}</p>
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from "vue";
+import TrackMixin from "@/mixins/track";
 export default Vue.extend({
-  props: {
-    src: {
-      type: String,
-      required: true,
-    },
-    title: {
-      type: String,
-      required: true,
-    },
-    artist: {
-      type: String,
-      required: true,
-    },
-  },
+  mixins: [TrackMixin],
 });
 </script>
 
