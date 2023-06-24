@@ -10,9 +10,18 @@ import fetchKey from "./utils/fetch-key";
 import store from "@/store";
 import { LocalStorage } from "./enums/local-storage";
 import { getFavorites } from "./utils/soundcloud-api";
+import { StatusBar, Style } from "@capacitor/status-bar";
+import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
+import { Capacitor } from "@capacitor/core";
 
 export default Vue.extend({
-  created() {
+  async created() {
+    if (Capacitor.getPlatform() === "ios") {
+      await StatusBar.setStyle({ style: Style.Light });
+      Keyboard.setScroll({ isDisabled: true });
+      Keyboard.setResizeMode({ mode: KeyboardResize.None });
+    }
+
     const user = localStorage.getItem(LocalStorage.User);
     const profileId = localStorage.getItem(LocalStorage.ProfileId);
     let parsedUser = "";

@@ -1,8 +1,8 @@
 <template>
   <div
+    ref="draggable"
     id="draggable"
     class="DraggablePlayer"
-    :class="{ 'DraggablePlayer--hide': hideDraggablePlayer }"
     :style="draggableStyle"
   >
     <div class="DraggablePlayer-dragButton" :style="buttonStyle"></div>
@@ -19,9 +19,9 @@
     >
       <transition name="fade">
         <p v-if="!hasCurrentSong">A bit quiet here...</p>
-        <div v-else class="DraggablePlayer-miniPlayerSong">
+        <div v-else class="DraggablePlayer-miniPlayerSong" @click="dragUp">
           <img
-            lazy
+            loading="lazy"
             :src="getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)"
             class="DraggablePlayer-miniPlayerArtwork"
           />
@@ -46,13 +46,19 @@
           v-if="paused"
           class="DraggablePlayer-miniPlayerPlay"
           @click="play"
+          :disabled="disableWhileFetching"
         >
           <img
             src="@/assets/icons/playLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
         </button>
-        <button v-else class="DraggablePlayer-miniPlayerPause" @click="pause">
+        <button
+          v-else
+          class="DraggablePlayer-miniPlayerPause"
+          @click="pause"
+          :disabled="disableWhileFetching"
+        >
           <img
             src="@/assets/icons/pauseLight.svg"
             class="DraggablePlayer-contentTopIcon"
@@ -91,49 +97,86 @@
           >
             A bit quiet here...
           </p>
-          <div
-            v-else
-            class="DraggablePlayer-contentSliderCurrentImageContainer"
-          >
-            <img
-              lazy
-              :src="
-                getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)
-              "
-              class="DraggablePlayer-contentSliderCurrentArtwork"
-            />
-            <img
-              lazy
-              :src="
-                getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)
-              "
-              class="DraggablePlayer-contentSliderCurrentArtwork--blurred"
-            />
-          </div>
-          <div class="DraggablePlayer-contentSliderCurrentInfos">
-            <p
-              v-if="currentTitle"
-              class="DraggablePlayer-contentSliderCurrentTitle"
-            >
-              {{ currentTitle }}
-            </p>
-            <p
-              v-if="currentArtist"
-              class="DraggablePlayer-contentSliderCurrentArtist"
-            >
-              {{ currentArtist }}
-            </p>
+          <div v-else class="DraggablePlayer-contentSliderSelection">
+            <div class="DraggablePlayer-contentSliderSelectionPrevious">
+              <div class="DraggablePlayer-contentSliderPreviousImageContainer">
+                <img
+                  v-if="previousTrack"
+                  loading="lazy"
+                  :src="
+                    getFullScaleImage(
+                      previousMediaArtwork,
+                      previousAvatarArtwork
+                    )
+                  "
+                  class="DraggablePlayer-contentSliderPreviousArtwork"
+                />
+              </div>
+            </div>
+            <div class="DraggablePlayer-contentSliderSelectionCurrent">
+              <div class="DraggablePlayer-contentSliderCurrentImageContainer">
+                <img
+                  loading="lazy"
+                  :src="
+                    getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)
+                  "
+                  class="DraggablePlayer-contentSliderCurrentArtwork"
+                />
+                <img
+                  loading="lazy"
+                  :src="
+                    getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)
+                  "
+                  class="DraggablePlayer-contentSliderCurrentArtwork--blurred"
+                />
+              </div>
+              <div class="DraggablePlayer-contentSliderCurrentInfos">
+                <p
+                  v-if="currentTitle"
+                  class="DraggablePlayer-contentSliderCurrentTitle"
+                >
+                  {{ currentTitle }}
+                </p>
+                <p
+                  v-if="currentArtist"
+                  class="DraggablePlayer-contentSliderCurrentArtist"
+                >
+                  {{ currentArtist }}
+                </p>
+              </div>
+            </div>
+            <div class="DraggablePlayer-contentSliderSelectionNext">
+              <div class="DraggablePlayer-contentSliderNextImageContainer">
+                <img
+                  v-if="nextTrack"
+                  loading="lazy"
+                  :src="getFullScaleImage(nextMediaArtwork, nextAvatarArtwork)"
+                  class="DraggablePlayer-contentSliderNextArtwork"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div class="DraggablePlayer-contentAdditionalControls">
-        <button class="DraggablePlayer-contentRepeat Touch" @click="repeat">
+        <button
+          :class="{
+            'DraggablePlayer-contentRepeat--one': loopOne,
+            'DraggablePlayer-contentRepeat--all': loopAll,
+          }"
+          class="DraggablePlayer-contentRepeat Touch"
+          @click="repeat"
+        >
           <img
             src="@/assets/icons/loopLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
         </button>
-        <button class="DraggablePlayer-contentShuffle Touch" @click="shuffle">
+        <button
+          :class="{ 'DraggablePlayer-contentShuffle--active': shuffleActive }"
+          class="DraggablePlayer-contentShuffle Touch"
+          @click="shuffle"
+        >
           <img
             src="@/assets/icons/shuffleLight.svg"
             class="DraggablePlayer-contentTopIcon"
@@ -151,6 +194,9 @@
             id="dot"
             class="DraggablePlayer-contentDot"
             :style="dotStyle"
+            @touchstart="startSeek"
+            @touchmove="onSeek"
+            @touchend="endSeek"
           ></div>
         </div>
       </div>
@@ -168,6 +214,7 @@
           v-if="paused"
           class="DraggablePlayer-contentControlsPlay Touch"
           @click="play"
+          :disabled="disableWhileFetching"
         >
           <img
             src="@/assets/icons/playLight.svg"
@@ -178,6 +225,7 @@
           v-else
           class="DraggablePlayer-contentControlsPause Touch"
           @click="pause"
+          :disabled="disableWhileFetching"
         >
           <img
             src="@/assets/icons/pauseLight.svg"
@@ -196,16 +244,22 @@
 </template>
 
 <script lang="ts">
+import { FavoriteItem } from "@/interfaces/favorite-item";
+import { debounce, isEqual } from "lodash";
+import store from "@/store";
 import Vue from "vue";
 import { mapGetters } from "vuex";
+import { Track } from "@/interfaces/track";
+import { StyleValue } from "vue/types/jsx";
 
 const INITIAL_POSITION = "12%";
 const TRANSITION = "all 0.5s ease-in";
 const BUTTON_TRANSFORM = "translateX(-50%) translateY(-2rem)";
 const BUTTON_INITIAL = "translateX(-50%) translateY(0)";
-const DEFAULT_OPACITY = 98;
+const DEFAULT_OPACITY = 95;
 const TOTAL_OPACITY = 100;
 const INITIAL_DOTSTYLE = "translateX(0) translateY(-50%)";
+const DOT_WIDTH = 20;
 
 export default Vue.extend({
   data() {
@@ -214,15 +268,19 @@ export default Vue.extend({
       maxHeight: 0,
       topBound: 0,
       startDragY: 0,
+      isSeeking: false,
       isDragging: false,
-      draggableStyle: {},
-      contentStyle: {},
-      miniPlayerStyle: {},
-      buttonStyle: {},
-      dotStyle: {},
+      draggableStyle: {} as StyleValue,
+      contentStyle: {} as StyleValue,
+      miniPlayerStyle: {} as StyleValue,
+      buttonStyle: {} as StyleValue,
+      dotStyle: {} as StyleValue,
       barWidth: 0,
-      initialPosition: 0,
-      currentPosition: 0,
+      dotMaxBound: 0,
+      initialPlayerPosition: 0,
+      currentPlayerPosition: 0,
+      currentDotPosition: { x: 0, y: 0 },
+      seekOffset: { x: 0, y: 0 },
       hideContent: true,
       hideMiniPlayer: false,
       initialDuration: "00:00",
@@ -230,8 +288,29 @@ export default Vue.extend({
       audio: {} as HTMLAudioElement,
       paused: true,
       currentTime: 0,
+      currentSongDuration: 0,
+      currentSongEnded: false,
       displayedCurrentTime: "00:00",
-      intervalId: 0,
+      disableWhileFetching: false,
+      loopOne: false,
+      loopAll: false,
+      shuffleActive: false,
+      shuffleArray: [] as number[],
+      updateHandler: (() => {
+        /* initial handler */
+      }) as (ev: Event) => void,
+      playHandler: (() => {
+        /* initial handler */
+      }) as (ev: Event) => void,
+      pauseHandler: (() => {
+        /* initial handler */
+      }) as (ev: Event) => void,
+      endHandler: (() => {
+        /* initial handler */
+      }) as (ev: Event) => void,
+      visibilityHandler: (() => {
+        /* initial handler */
+      }) as (ev: Event) => void,
     };
   },
   props: {
@@ -249,16 +328,33 @@ export default Vue.extend({
 
     if (bar && draggable && player) {
       this.barWidth = bar.offsetWidth;
+      this.dotMaxBound = this.barWidth - DOT_WIDTH;
       this.audio = new Audio("");
       this.maxHeight = player.offsetHeight;
       this.topBound = this.viewportHeight - this.maxHeight;
-      console.log(this.topBound);
     }
 
-    this.checkAudioStatus();
+    this.updateHandler = this.updateTime;
+    this.playHandler = this.onPlay;
+    this.pauseHandler = this.onPause;
+    this.endHandler = this.onEnded;
+    this.visibilityHandler = this.handleVisibility;
+
+    document.addEventListener("visibilitychange", this.visibilityHandler);
+
+    this.next = debounce(this.next, 200);
+    this.previous = debounce(this.previous, 200);
+  },
+  beforeDestroy() {
+    document.removeEventListener("visibilitychange", this.visibilityHandler);
   },
   computed: {
-    ...mapGetters(["getCurrentMediaUrl", "getCurrentSong"]),
+    ...mapGetters([
+      "getCurrentMediaUrl",
+      "getCurrentSong",
+      "getFavorites",
+      "getNextUrl",
+    ]),
     hasCurrentSong(): boolean {
       return this.getCurrentMediaUrl ? true : false;
     },
@@ -278,8 +374,51 @@ export default Vue.extend({
     currentTitle(): string {
       return this.getCurrentSong ? this.getCurrentSong.title : null;
     },
-    currentSongDuration(): number {
-      return this.getCurrentSong.full_duration;
+    queue(): FavoriteItem[] {
+      return this.getFavorites ? this.getFavorites.collection : null;
+    },
+    currentSongIndex(): number | null {
+      if (this.queue) {
+        return this.queue.findIndex((item) =>
+          isEqual(item.track, this.getCurrentSong)
+        );
+      }
+      return null;
+    },
+    previousTrack(): Track | null {
+      let previous = {} as FavoriteItem;
+      if (this.currentSongIndex) {
+        previous = this.queue[this.currentSongIndex - 1];
+      }
+      if (previous) {
+        return previous.track;
+      }
+      return null;
+    },
+    previousMediaArtwork(): string {
+      return this.previousTrack ? this.previousTrack.artwork_url : "";
+    },
+    previousAvatarArtwork(): string {
+      return this.previousTrack ? this.previousTrack.user.avatar_url : "";
+    },
+    nextTrack(): Track | null {
+      let next = {} as FavoriteItem;
+      if (this.currentSongIndex !== null) {
+        next = this.queue[this.currentSongIndex + 1];
+      }
+      if (next) {
+        return next.track;
+      }
+      return null;
+    },
+    nextMediaArtwork(): string {
+      return this.nextTrack ? this.nextTrack.artwork_url : "";
+    },
+    nextAvatarArtwork(): string {
+      return this.nextTrack ? this.nextTrack.user.avatar_url : "";
+    },
+    queueLength(): number {
+      return this.queue ? this.queue.length : 0;
     },
   },
   methods: {
@@ -290,15 +429,15 @@ export default Vue.extend({
     },
     onDrag(e: TouchEvent) {
       this.$emit("unhide", false);
-      this.currentPosition = e.touches[0].clientY;
-      if (this.isDragging && this.currentPosition >= this.topBound) {
+      this.currentPlayerPosition = e.touches[0].clientY;
+      if (this.isDragging && this.currentPlayerPosition >= this.topBound) {
         this.draggableStyle = {
-          height: `${this.viewportHeight - this.currentPosition}px`,
+          height: `${this.viewportHeight - this.currentPlayerPosition}px`,
           transition: "none",
           opacity: `${TOTAL_OPACITY}%`,
         };
         let positionFraction =
-          (this.viewportHeight - this.topBound - this.currentPosition) /
+          (this.viewportHeight - this.topBound - this.currentPlayerPosition) /
           this.viewportHeight;
         if (positionFraction < 0) {
           positionFraction = 0;
@@ -316,8 +455,8 @@ export default Vue.extend({
     },
     endDrag(e: TouchEvent) {
       this.isDragging = false;
-      this.currentPosition = e.changedTouches[0].clientY;
-      const direction = this.currentPosition - this.startDragY;
+      this.currentPlayerPosition = e.changedTouches[0].clientY;
+      const direction = this.currentPlayerPosition - this.startDragY;
       const thirdScreen = window.innerHeight / 3;
       const twoThirdScreen = (window.innerHeight * 2) / 3;
       // remove unnecessary initial modifier when style is controled by the drag movement
@@ -325,7 +464,7 @@ export default Vue.extend({
 
       if (direction < 0) {
         // Dragging Up, reach MAX_TOP
-        if (this.currentPosition > twoThirdScreen) {
+        if (this.currentPlayerPosition > twoThirdScreen) {
           // Dragging up but didn't drag up to two third of the screen
           this.dragDown();
         } else {
@@ -333,7 +472,7 @@ export default Vue.extend({
         }
       } else {
         // Dragging Down, reach INITIAL_POSITION
-        if (this.currentPosition < thirdScreen) {
+        if (this.currentPlayerPosition < thirdScreen) {
           // Dragging Down but didn't drag to a third of the screen height
           this.dragUp();
         } else {
@@ -380,56 +519,139 @@ export default Vue.extend({
         transform: BUTTON_INITIAL,
       };
     },
+    startSeek(e: TouchEvent) {
+      this.isSeeking = true;
+      let touch = e.touches[0];
+      this.seekOffset.x = touch.clientX - this.currentDotPosition.x;
+      this.seekHandler(touch);
+    },
+    onSeek(e: TouchEvent) {
+      let touch = e.touches[0];
+      this.seekHandler(touch);
+    },
+    async endSeek() {
+      const songDuration = await this.getSongDuration();
+      let progress = this.currentDotPosition.x / this.dotMaxBound;
+      let newTime = songDuration * progress;
+      if (this.audio && songDuration > 0) {
+        this.audio.currentTime = newTime / 1000;
+        if (this.paused) {
+          this.onPause();
+          this.isSeeking = false;
+        } else {
+          this.onPlay();
+        }
+      }
+    },
+    seekHandler(touch: Touch) {
+      this.currentDotPosition.x = touch.clientX - this.seekOffset.x;
+      if (this.currentDotPosition.x < 0) {
+        this.currentDotPosition.x = 0;
+      } else if (this.currentDotPosition.x > this.dotMaxBound) {
+        this.currentDotPosition.x = this.dotMaxBound;
+      }
+      this.dotStyle = {
+        transform: `translateX(${this.currentDotPosition.x}px) translateY(-50%)`,
+        transition: "none",
+      };
+    },
     previous() {
-      // do something
+      if (this.previousTrack) {
+        if (this.currentTime < 3000) {
+          if (!this.shuffleActive) {
+            store.dispatch("updateSong", {
+              track: this.previousTrack,
+              mediaUrl: this.previousTrack.media.transcodings[1].url,
+            });
+          } else {
+            const randomTrack = this.getRandomSong();
+            store.dispatch("updateSong", {
+              track: randomTrack,
+              mediaUrl: randomTrack.media.transcodings[1].url,
+            });
+          }
+        } else {
+          store.dispatch("updateSong", {
+            track: this.getCurrentSong,
+            mediaUrl: this.getCurrentSong.media.transcodings[1].url,
+          });
+        }
+      } else {
+        store.dispatch("updateSong", {
+          track: this.getCurrentSong,
+          mediaUrl: this.getCurrentSong.media.transcodings[1].url,
+        });
+      }
     },
     play() {
       if (!!this.audio && !!this.getCurrentMediaUrl) {
         this.audio.play();
-        if (this.currentTime >= this.currentSongDuration) {
-          this.currentTime = 0;
-          this.resetDotAnimation();
-        }
-        if (
-          this.currentTime > 0 &&
-          this.currentTime < this.currentSongDuration
-        ) {
-          const remainingDuration = this.currentSongDuration - this.currentTime;
-          this.dotStyle = {
-            transform: `translateX(${this.barWidth - 20}px) translateY(-50%)`,
-            transition: `all ${remainingDuration}ms linear`,
-          };
-        }
+        this.onPlay();
       }
     },
     pause() {
       if (!!this.audio && !!this.getCurrentMediaUrl) {
         this.audio.pause();
-        if (
-          this.currentTime > 0 &&
-          this.currentTime < this.currentSongDuration
-        ) {
-          const dotPosition = this.getDotPosition();
-          this.dotStyle = {
-            transform: `translateX(${dotPosition}px) translateY(-50%)`,
-            transition: "",
-          };
-        }
+        this.onPause();
       }
     },
     next() {
-      // do something
+      if (this.nextTrack && !this.shuffleActive) {
+        store.dispatch("updateSong", {
+          track: this.nextTrack,
+          mediaUrl: this.nextTrack.media.transcodings[1].url,
+        });
+      } else if (!this.nextTrack && !this.shuffleActive) {
+        return;
+      } else {
+        const randomTrack = this.getRandomSong();
+        store.dispatch("updateSong", {
+          track: randomTrack,
+          mediaUrl: randomTrack.media.transcodings[1].url,
+        });
+      }
     },
     repeat() {
-      // do something
+      console.log("loop");
+      if (!this.loopAll && !this.loopOne) {
+        this.loopOne = true;
+      } else if (this.loopOne && !this.loopAll) {
+        this.loopAll = true;
+        this.loopOne = false;
+      } else {
+        this.loopAll = false;
+      }
     },
     shuffle() {
-      // do something
+      if (!this.shuffleActive) {
+        this.shuffleActive = true;
+        this.$emit("recursiveGetFavorites");
+      } else {
+        this.shuffleActive = false;
+      }
     },
-    checkAudioStatus() {
-      setInterval(() => {
-        this.paused = this.audio && this.audio.paused;
-      }, 100);
+    getRandomSong(): Track {
+      if (this.shuffleArray.length === this.queueLength) {
+        this.shuffleArray = [];
+      }
+      let randomIndex = -1;
+      let track = {} as Track;
+      while (
+        (this.shuffleArray.includes(randomIndex) &&
+          this.shuffleArray.length < this.queueLength) ||
+        randomIndex === -1
+      ) {
+        randomIndex = this.generateRandomNumber();
+        console.log(randomIndex);
+      }
+      this.shuffleArray.push(randomIndex);
+      track = this.queue[randomIndex].track;
+      return track;
+    },
+    generateRandomNumber(): number {
+      return this.queueLength
+        ? Math.floor(Math.random() * this.queueLength)
+        : 0;
     },
     getFullScaleImage(url: string, avatar_url: string): string | undefined {
       if (url) {
@@ -442,26 +664,97 @@ export default Vue.extend({
         return undefined;
       }
     },
-    updateTime() {
-      this.currentTime = this.audio.currentTime;
-      this.displayedCurrentTime = this.computeTime(
-        Math.trunc(this.currentTime * 1000)
-      );
+    updateTime(): Promise<number> {
+      return new Promise((resolve) => {
+        this.currentTime = this.audio.currentTime * 1000;
+        this.currentDotPosition.x = this.getDotPosition();
+        this.displayedCurrentTime = this.computeTime(
+          Math.trunc(this.currentTime)
+        );
+        resolve(this.currentTime);
+      });
     },
-    onPause() {
-      if (this.currentTime > 0 && this.currentTime < this.currentSongDuration) {
-        const dotPosition = this.getDotPosition();
+    async onPlay() {
+      this.paused = false;
+      const remainingDuration =
+        this.currentSongDuration - (await this.updateTime());
+      const dotPosition = this.getDotPosition();
+
+      if (this.currentSongEnded && dotPosition === 0) {
+        store.dispatch("updateSong", {
+          track: this.getCurrentSong,
+          mediaUrl: this.getCurrentSong.media.transcodings[1].url,
+        });
+      }
+      this.currentSongEnded = false;
+
+      if (dotPosition === 0 && !this.currentSongEnded) {
         this.dotStyle = {
           transform: `translateX(${dotPosition}px) translateY(-50%)`,
-          transition: "",
+          transition: "none",
+        };
+        setTimeout(() => {
+          this.dotStyle = {
+            transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
+            transition: `all ${this.currentSongDuration}ms linear`,
+          };
+        }, 500);
+      } else if (
+        dotPosition < this.dotMaxBound &&
+        dotPosition > 0 &&
+        !this.currentSongEnded
+      ) {
+        this.dotStyle = {
+          transform: `translateX(${dotPosition}px) translateY(-50%)`,
+          transition: "none",
+        };
+        setTimeout(() => {
+          this.dotStyle = {
+            transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
+            transition: `all ${remainingDuration}ms linear`,
+          };
+        }, 500);
+      }
+
+      this.isSeeking = false;
+    },
+    onPause() {
+      this.paused = true;
+      const dotPosition = this.getDotPosition();
+      if (dotPosition > 0 && dotPosition < this.dotMaxBound) {
+        this.dotStyle = {
+          transform: `translateX(${dotPosition}px) translateY(-50%)`,
+          transition: "none",
         };
       }
     },
     onEnded() {
-      this.dotStyle = {
-        transform: `${INITIAL_DOTSTYLE}`,
-        transition: "",
-      };
+      this.currentSongEnded = true;
+      this.currentTime = 0;
+      setTimeout(() => {
+        this.displayedCurrentTime = "00:00";
+      }, 500);
+      this.currentDotPosition = { x: 0, y: 0 };
+      this.seekOffset = { x: 0, y: 0 };
+      this.resetDotPosition();
+      if (this.loopOne && !this.loopAll) {
+        store.dispatch("updateSong", {
+          track: this.getCurrentSong,
+          mediaUrl: this.getCurrentSong.media.transcodings[1].url,
+        });
+      } else if (this.loopAll && !this.loopOne) {
+        if (this.getNextUrl === null) {
+          const firstSong = this.queue[0].track;
+          store.dispatch("updateSong", {
+            track: firstSong,
+            mediaUrl: firstSong.media.transcodings[1].url,
+          });
+        } else {
+          this.next();
+        }
+      } else {
+        this.next();
+      }
     },
     computeTime(time: number): string {
       if (time < 1000 || !time) {
@@ -502,17 +795,62 @@ export default Vue.extend({
       }
       return 0;
     },
-    resetDotAnimation() {
+    audioAvailability(): Promise<void> {
+      return new Promise<void>(() => {
+        this.audio.addEventListener("loadedmetadata", this.updateHandler, {
+          once: true,
+        });
+      });
+    },
+    resetDotPosition() {
       this.dotStyle = {
         transform: `${INITIAL_DOTSTYLE}`,
-        transition: "",
+        transition: "none",
       };
+    },
+    startAnimation() {
+      this.dotStyle = {
+        transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
+        transition: `all ${this.currentSongDuration}ms linear`,
+      };
+    },
+    resetDotAnimation() {
+      this.resetDotPosition();
       setTimeout(() => {
+        this.startAnimation();
+      }, 600);
+    },
+    getSongDuration(): Promise<number> {
+      return new Promise((resolve) => {
+        if (!this.audio.duration || this.currentSongDuration === 0) {
+          this.audio.onloadedmetadata = () => {
+            this.currentSongDuration = this.audio.duration * 1000;
+            resolve(this.currentSongDuration);
+            return;
+          };
+        }
+        resolve(this.currentSongDuration);
+      });
+    },
+    async handleVisibility() {
+      if (!document.hidden && this.audio) {
+        const remainingDuration =
+          this.currentSongDuration - (await this.updateTime());
+        const newPosition =
+          (this.currentTime * this.dotMaxBound) / this.currentSongDuration;
         this.dotStyle = {
-          transform: `translateX(${this.barWidth - 20}px) translateY(-50%)`,
-          transition: `all ${this.currentSongDuration}ms linear`,
+          transform: `translateX(${newPosition}px) translateY(-50%)`,
+          transition: "none",
         };
-      }, 100);
+        if (!this.paused) {
+          setTimeout(() => {
+            this.dotStyle = {
+              transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
+              transition: `all ${remainingDuration}ms linear`,
+            };
+          }, 500);
+        }
+      }
     },
   },
   watch: {
@@ -522,23 +860,45 @@ export default Vue.extend({
       }
     },
     getCurrentMediaUrl: {
-      handler(newVal) {
+      async handler(newVal) {
         if (this.audio) {
-          this.audio.removeEventListener("timeupdate", this.updateTime);
-          this.audio.removeEventListener("pause", this.onPause);
-          this.audio.removeEventListener("ended", this.onEnded);
+          this.disableWhileFetching = true;
+          this.audio.removeEventListener("timeupdate", this.updateHandler);
+          this.audio.removeEventListener("play", this.playHandler);
+          this.audio.removeEventListener("pause", this.pauseHandler);
+          this.audio.removeEventListener("ended", this.endHandler);
           this.audio.pause();
+          this.paused = true;
           this.audio.currentTime = 0;
+          this.currentSongDuration = 0;
           this.audio = new Audio(newVal.url);
-          this.audio.addEventListener("timeupdate", this.updateTime);
-          this.audio.addEventListener("pause", this.onPause);
-          this.audio.addEventListener("ended", this.onEnded);
-          this.audio.play();
-          this.currentTime = 0;
-          this.resetDotAnimation();
+          this.audio.addEventListener("timeupdate", this.updateHandler);
+          this.audio.addEventListener("play", this.playHandler);
+          this.audio.addEventListener("pause", this.pauseHandler);
+          this.audio.addEventListener("ended", this.endHandler);
+          this.currentSongDuration = await this.getSongDuration();
+          const interval = setInterval(() => {
+            if (this.currentSongDuration > 0) {
+              this.audio.play();
+              this.paused = false;
+              this.currentTime = 0;
+              this.resetDotAnimation();
+              clearInterval(interval);
+              this.disableWhileFetching = false;
+            }
+          }, 10);
         }
       },
       deep: true,
+    },
+    nextTrack: {
+      handler(newVal) {
+        if (newVal !== undefined && newVal === null) {
+          this.$emit("getNextFavorites", true);
+        }
+      },
+      deep: true,
+      immediate: true,
     },
   },
 });
@@ -557,7 +917,7 @@ export default Vue.extend({
   background: $light;
   border-radius: 3rem 3rem 0 0;
   transition: all 0.5s ease-in;
-  opacity: 98%;
+  opacity: 95%;
 
   &--hide {
     height: 2%;
@@ -655,6 +1015,7 @@ export default Vue.extend({
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    overflow: hidden;
 
     &--hide {
       opacity: 0;
@@ -683,6 +1044,51 @@ export default Vue.extend({
     &Slider {
       height: 37.5rem;
       padding: 0 2rem;
+
+      &Selection {
+        display: flex;
+
+        &Previous {
+          margin-right: 1.5rem;
+        }
+
+        &Next {
+          margin-left: 1.5rem;
+        }
+
+        &Previous,
+        &Next {
+          width: 25rem;
+        }
+      }
+
+      &Previous {
+        &ImageContainer {
+          height: 30rem;
+          display: flex;
+          align-items: center;
+        }
+
+        &Artwork {
+          height: 25rem;
+          width: 25rem;
+          border-radius: 3rem;
+        }
+      }
+
+      &Next {
+        &ImageContainer {
+          height: 30rem;
+          display: flex;
+          align-items: center;
+        }
+
+        &Artwork {
+          height: 25rem;
+          width: 25rem;
+          border-radius: 3rem;
+        }
+      }
 
       &Current {
         display: flex;
@@ -726,6 +1132,7 @@ export default Vue.extend({
           margin-top: 4.5rem;
           text-align: center;
           line-height: 2.2rem;
+          max-width: 30rem;
         }
 
         &Title {
@@ -781,6 +1188,7 @@ export default Vue.extend({
       width: 2rem;
       border-radius: 50%;
       background: $black;
+      transition: all 0.5s ease-in;
     }
 
     &Controls {
@@ -795,6 +1203,42 @@ export default Vue.extend({
 
       &Icon {
         height: 2.5rem;
+      }
+    }
+
+    &Repeat {
+      &--one {
+        &::after {
+          content: "1";
+          font-weight: 700;
+        }
+      }
+
+      &--all {
+        &::after {
+          content: "all";
+          font-weight: 700;
+        }
+      }
+    }
+
+    &Shuffle {
+      position: relative;
+
+      &--active {
+        &::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translateX(-50%) translateY(50%);
+          margin-top: 0.5rem;
+          height: 0.5rem;
+          width: 0.5rem;
+          display: block;
+          border-radius: 50%;
+          background: $black;
+        }
       }
     }
   }
