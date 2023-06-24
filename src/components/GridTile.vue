@@ -1,7 +1,7 @@
 <template>
   <div @click="setSong(track)" class="GridTile">
     <img
-      lazy
+      loading="lazy"
       class="GridTile-cover"
       :src="getFullScaleImage(artwork, avatar)"
     />

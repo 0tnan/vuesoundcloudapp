@@ -1,7 +1,7 @@
 <template>
   <div class="ListTile" @click="setSong(track)">
     <img
-      lazy
+      loading="lazy"
       class="ListTile-cover"
       :src="getFullScaleImage(artwork, avatar)"
     />

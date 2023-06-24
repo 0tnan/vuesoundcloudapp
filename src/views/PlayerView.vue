@@ -1,9 +1,9 @@
 <template>
   <div id="player" class="Player">
     <DraggablePlayer
-      :hide-draggable-player="hideDraggablePlayer"
-      @unhide="unhide"
       @disallowScroll="disableScroll"
+      @getNextFavorites="updateFavorites"
+      @recursiveGetFavorites="recursiveGetNextFavorites"
     ></DraggablePlayer>
     <div class="Player-topContainer">
       <div class="Player-text">
@@ -24,7 +24,7 @@
       />
       <img src="@/assets/icons/search.svg" class="Player-searchIcon" />
       <button
-        @touchend.prevent="onRefresh"
+        @click="onRefresh"
         class="Player-searchRefresh"
         :class="{ 'Player-searchRefresh--on': isRefreshing }"
         :disabled="refreshDisabled"
@@ -36,30 +36,30 @@
       <div class="Player-viewSwitchTitle">Favorites</div>
       <div class="Player-viewSwitchIcons">
         <button
-          @touchend.prevent="switchToGrid"
+          @click="switchToGrid"
           v-if="gridEnabled"
-          class="Player-viewSwitchGrid"
+          class="Player-viewSwitchGrid Player-viewSwitchButton"
         >
           <img src="@/assets/icons/gridLightEnabled.svg" />
         </button>
         <button
-          @touchend.prevent="switchToGrid"
+          @click="switchToGrid"
           v-else
-          class="Player-viewSwitchGrid"
+          class="Player-viewSwitchGrid Player-viewSwitchButton"
         >
           <img src="@/assets/icons/gridLightDisabled.svg" />
         </button>
         <button
-          @touchend.prevent="switchToList"
+          @click="switchToList"
           v-if="!gridEnabled"
-          class="Player-viewSwitchList"
+          class="Player-viewSwitchList Player-viewSwitchButton"
         >
           <img src="@/assets/icons/listLightEnabled.svg" />
         </button>
         <button
-          @touchend.prevent="switchToList"
+          @click="switchToList"
           v-else
-          class="Player-viewSwitchList"
+          class="Player-viewSwitchList Player-viewSwitchButton"
         >
           <img src="@/assets/icons/listLightDisabled.svg" />
         </button>
@@ -82,7 +82,7 @@
           <div v-if="!scrollEnd" class="Player-loadingContainer">
             <img
               class="Player-loadingIcon"
-              lazy
+              loading="lazy"
               src="@/assets/img/loading.gif"
             />
           </div>
@@ -103,7 +103,7 @@
           <div v-if="!scrollEnd" class="Player-loadingContainer">
             <img
               class="Player-loadingIcon"
-              lazy
+              loading="lazy"
               src="@/assets/img/loading.gif"
             />
           </div>
@@ -127,7 +127,7 @@
           <div v-if="!scrollEnd" class="Player-loadingContainer">
             <img
               class="Player-loadingIcon"
-              lazy
+              loading="lazy"
               src="@/assets/img/loading.gif"
             />
           </div>
@@ -148,7 +148,7 @@
           <div v-if="!scrollEnd" class="Player-loadingContainer">
             <img
               class="Player-loadingIcon"
-              lazy
+              loading="lazy"
               src="@/assets/img/loading.gif"
             />
           </div>
@@ -185,7 +185,6 @@ export default Vue.extend({
       launchedRecursive: false,
       isRefreshing: false,
       refreshDisabled: false,
-      hideDraggablePlayer: false,
     };
   },
   created() {
@@ -228,26 +227,27 @@ export default Vue.extend({
       this.gridEnabled = false;
     },
     onScroll() {
-      this.hideDraggablePlayer = true;
       const queue = document.getElementById("queue");
       if (queue) {
         const isScrollEnd =
           queue.scrollTop + queue.clientHeight >= queue.scrollHeight;
-        if (isScrollEnd && this.getNextUrl) {
+        if (isScrollEnd && !!this.getNextUrl) {
           this.updateFavorites();
         }
       }
     },
     updateFavorites() {
-      getNextFavorites(this.getApiKey, this.getNextUrl).then(
-        (results: Favorites) => {
-          results.collection.forEach((item) => {
-            this.tracklist.push(item.track);
-          });
-          store.commit("addToFavorites", results.collection);
-          store.commit("setNextUrl", results.next_href);
-        }
-      );
+      if (this.getNextUrl !== null) {
+        getNextFavorites(this.getApiKey, this.getNextUrl).then(
+          (results: Favorites) => {
+            results.collection.forEach((item) => {
+              this.tracklist.push(item.track);
+            });
+            store.commit("addToFavorites", results.collection);
+            store.commit("setNextUrl", results.next_href);
+          }
+        );
+      }
     },
     forceUpdate() {
       const unfiltered = document.getElementById("unfiltered");
@@ -298,27 +298,24 @@ export default Vue.extend({
       }
     },
     recursiveGetNextFavorites() {
-      getNextFavorites(this.getApiKey, this.getNextUrl).then(
-        (results: Favorites) => {
-          results.collection.forEach((item) => {
-            this.tracklist.push(item.track);
-          });
-          store.commit("addToFavorites", results.collection);
-          store.commit("setNextUrl", results.next_href);
-          if (this.getNextUrl !== null) {
+      if (this.getNextUrl) {
+        getNextFavorites(this.getApiKey, this.getNextUrl).then(
+          (results: Favorites) => {
+            results.collection.forEach((item) => {
+              this.tracklist.push(item.track);
+            });
+            store.commit("addToFavorites", results.collection);
+            store.commit("setNextUrl", results.next_href);
             this.recursiveGetNextFavorites();
           }
-        }
-      );
+        );
+      }
     },
     populateFavorites() {
       const favorites = this.getFavorites as Favorites;
       favorites.collection.forEach((item) => {
         this.tracklist.push(item.track);
       });
-    },
-    unhide(value: boolean) {
-      this.hideDraggablePlayer = value;
     },
     disableScroll(value: boolean) {
       const queue = document.getElementById("queue");
@@ -426,7 +423,7 @@ export default Vue.extend({
   }
 
   &-viewSwitch {
-    margin-top: 3.5rem;
+    margin-top: 2.5rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -434,7 +431,6 @@ export default Vue.extend({
     &Icons {
       display: flex;
       align-items: center;
-      margin-right: 1rem;
     }
 
     &Title {
@@ -442,18 +438,23 @@ export default Vue.extend({
       font-size: $xxl;
     }
 
+    &Button {
+      padding: 2rem;
+    }
+
     &List {
-      margin-left: 3rem;
+      padding-right: 1.25rem;
     }
   }
 
   &-musicGrid,
   &-musicList {
-    margin-top: 2.5rem;
+    margin-top: 1.5rem;
     overflow-y: auto;
     overflow-x: hidden;
     height: calc(100vh - 37rem);
     display: flex;
+    padding-bottom: 10rem;
   }
 
   &-musicGrid {
