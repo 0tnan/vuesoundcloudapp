@@ -385,7 +385,7 @@ export default Vue.extend({
       }
       return null;
     },
-    previousTrack(): Track | null {
+    previousTrack(): Track | undefined {
       let previous = {} as FavoriteItem;
       if (this.currentSongIndex) {
         previous = this.queue[this.currentSongIndex - 1];
@@ -393,7 +393,7 @@ export default Vue.extend({
       if (previous) {
         return previous.track;
       }
-      return null;
+      return undefined;
     },
     previousMediaArtwork(): string {
       return this.previousTrack ? this.previousTrack.artwork_url : "";
@@ -401,7 +401,7 @@ export default Vue.extend({
     previousAvatarArtwork(): string {
       return this.previousTrack ? this.previousTrack.user.avatar_url : "";
     },
-    nextTrack(): Track | null {
+    nextTrack(): Track | undefined {
       let next = {} as FavoriteItem;
       if (this.currentSongIndex !== null) {
         next = this.queue[this.currentSongIndex + 1];
@@ -409,7 +409,7 @@ export default Vue.extend({
       if (next) {
         return next.track;
       }
-      return null;
+      return undefined;
     },
     nextMediaArtwork(): string {
       return this.nextTrack ? this.nextTrack.artwork_url : "";
@@ -565,10 +565,12 @@ export default Vue.extend({
             });
           } else {
             const randomTrack = this.getRandomSong();
-            store.dispatch("updateSong", {
-              track: randomTrack,
-              mediaUrl: randomTrack.media.transcodings[1].url,
-            });
+            if (randomTrack) {
+              store.dispatch("updateSong", {
+                track: randomTrack,
+                mediaUrl: randomTrack.media.transcodings[1].url,
+              });
+            }
           }
         } else {
           store.dispatch("updateSong", {
@@ -605,10 +607,12 @@ export default Vue.extend({
         return;
       } else {
         const randomTrack = this.getRandomSong();
-        store.dispatch("updateSong", {
-          track: randomTrack,
-          mediaUrl: randomTrack.media.transcodings[1].url,
-        });
+        if (randomTrack) {
+          store.dispatch("updateSong", {
+            track: randomTrack,
+            mediaUrl: randomTrack.media.transcodings[1].url,
+          });
+        }
       }
     },
     repeat() {
@@ -630,12 +634,12 @@ export default Vue.extend({
         this.shuffleActive = false;
       }
     },
-    getRandomSong(): Track {
+    getRandomSong(): Track | undefined {
       if (this.shuffleArray.length === this.queueLength) {
         this.shuffleArray = [];
       }
       let randomIndex = -1;
-      let track = {} as Track;
+      let track = {} as Track | undefined;
       while (
         (this.shuffleArray.includes(randomIndex) &&
           this.shuffleArray.length < this.queueLength) ||
@@ -745,10 +749,12 @@ export default Vue.extend({
       } else if (this.loopAll && !this.loopOne) {
         if (this.getNextUrl === null) {
           const firstSong = this.queue[0].track;
-          store.dispatch("updateSong", {
-            track: firstSong,
-            mediaUrl: firstSong.media.transcodings[1].url,
-          });
+          if (firstSong) {
+            store.dispatch("updateSong", {
+              track: firstSong,
+              mediaUrl: firstSong.media.transcodings[1].url,
+            });
+          }
         } else {
           this.next();
         }

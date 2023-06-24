@@ -241,7 +241,9 @@ export default Vue.extend({
         getNextFavorites(this.getApiKey, this.getNextUrl).then(
           (results: Favorites) => {
             results.collection.forEach((item) => {
-              this.tracklist.push(item.track);
+              if (item.track) {
+                this.tracklist.push(item.track);
+              }
             });
             store.commit("addToFavorites", results.collection);
             store.commit("setNextUrl", results.next_href);
@@ -302,7 +304,9 @@ export default Vue.extend({
         getNextFavorites(this.getApiKey, this.getNextUrl).then(
           (results: Favorites) => {
             results.collection.forEach((item) => {
-              this.tracklist.push(item.track);
+              if (item.track) {
+                this.tracklist.push(item.track);
+              }
             });
             store.commit("addToFavorites", results.collection);
             store.commit("setNextUrl", results.next_href);
@@ -314,7 +318,9 @@ export default Vue.extend({
     populateFavorites() {
       const favorites = this.getFavorites as Favorites;
       favorites.collection.forEach((item) => {
-        this.tracklist.push(item.track);
+        if (item.track) {
+          this.tracklist.push(item.track);
+        }
       });
     },
     disableScroll(value: boolean) {
