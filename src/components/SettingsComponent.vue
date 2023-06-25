@@ -60,7 +60,6 @@ import Vue from "vue";
 import ProfileMixin from "@/mixins/profile";
 import { StyleValue } from "vue/types/jsx";
 import { mapGetters } from "vuex";
-import { LocalStorage } from "@/enums/local-storage";
 
 export default Vue.extend({
   mixins: [ProfileMixin],
@@ -86,8 +85,6 @@ export default Vue.extend({
   methods: {
     toggleDarkMode() {
       store.dispatch("toggleDarkMode");
-      const darkModeJSON = JSON.stringify(this.getDarkMode);
-      localStorage.setItem(LocalStorage.DarkMode, darkModeJSON);
     },
     hide() {
       this.$emit("toggleSettings");

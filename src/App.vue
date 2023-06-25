@@ -9,6 +9,7 @@ import Vue from "vue";
 import fetchKey from "./utils/fetch-key";
 import store from "@/store";
 import { LocalStorage } from "./enums/local-storage";
+import { DarkMode } from "@/enums/dark-mode";
 import { getFavorites } from "./utils/soundcloud-api";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
@@ -18,17 +19,22 @@ import { mapGetters } from "vuex";
 export default Vue.extend({
   async created() {
     const darkMode = localStorage.getItem(LocalStorage.DarkMode);
-    let parsedDarkMode = false;
-    darkMode ? (parsedDarkMode = JSON.parse(darkMode)) : false;
-    store.commit("setDarkMode", parsedDarkMode);
+    let parsedDarkMode = "" as DarkMode;
+    if (darkMode) {
+      parsedDarkMode = JSON.parse(darkMode);
+    }
+    if (parsedDarkMode === DarkMode.Dark) {
+      store.commit("setDarkMode", true);
+    } else {
+      store.commit("setDarkMode", false);
+    }
 
     if (Capacitor.getPlatform() === "ios") {
-      if (darkMode) {
+      if (this.getDarkMode) {
         await StatusBar.setStyle({ style: Style.Dark });
       } else {
         await StatusBar.setStyle({ style: Style.Light });
       }
-      await StatusBar.setStyle({ style: Style.Light });
       Keyboard.setScroll({ isDisabled: true });
       Keyboard.setResizeMode({ mode: KeyboardResize.None });
     }

@@ -7,6 +7,8 @@ import Vue from "vue";
 import Vuex from "vuex";
 import { Capacitor } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
+import { LocalStorage } from "@/enums/local-storage";
+import { DarkMode } from "@/enums/dark-mode";
 
 Vue.use(Vuex);
 
@@ -24,6 +26,14 @@ interface State {
 interface Payload {
   track: Track;
   mediaUrl: string;
+}
+
+function handleDarkMode(mode: boolean) {
+  if (mode) {
+    localStorage.setItem(LocalStorage.DarkMode, JSON.stringify(DarkMode.Dark));
+  } else {
+    localStorage.setItem(LocalStorage.DarkMode, JSON.stringify(DarkMode.Light));
+  }
 }
 
 export default new Vuex.Store({
@@ -92,9 +102,11 @@ export default new Vuex.Store({
     },
     toggleDarkMode(state: State) {
       state.isDarkMode = !state.isDarkMode;
+      handleDarkMode(state.isDarkMode);
     },
     setDarkMode(state: State, value: boolean) {
       state.isDarkMode = value;
+      handleDarkMode(state.isDarkMode);
     },
     resetState(state: State) {
       state.user = {} as User;
