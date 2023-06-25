@@ -4,6 +4,7 @@
       @disallowScroll="disableScroll"
       @getNextFavorites="updateFavorites"
       @recursiveGetFavorites="recursiveGetNextFavorites"
+      :filteredList="filteredTrackList"
     ></DraggablePlayer>
     <transition name="slide" appear>
       <SettingsComponent
@@ -30,6 +31,9 @@
         placeholder="search"
         v-model="searchQuery"
       />
+      <button @click="onRemove" class="Player-searchRemove">
+        <img class="Player-searchRemoveIcon" src="@/assets/icons/cross.svg" />
+      </button>
       <img src="@/assets/icons/search.svg" class="Player-searchIcon" />
       <button
         @click="onRefresh"
@@ -231,11 +235,17 @@ export default Vue.extend({
     },
     filteredTrackList(): Track[] {
       const lowercaseQuery = this.searchQuery.toLocaleLowerCase();
-      return this.tracklist.filter(
+      const filteredList = this.tracklist.filter(
         (item) =>
           item.title.toLocaleLowerCase().includes(lowercaseQuery) ||
           item.user.username.toLocaleLowerCase().includes(lowercaseQuery)
       );
+
+      const uniqueFiltered = [
+        ...new Map(filteredList.map((item) => [item.id, item])).values(),
+      ];
+
+      return uniqueFiltered;
     },
   },
   methods: {
@@ -312,6 +322,9 @@ export default Vue.extend({
       }
       this.forceUpdate();
     },
+    onRemove() {
+      this.searchQuery = "";
+    },
     searchTracks() {
       if (this.getNextUrl !== null && !this.launchedRecursive) {
         this.launchedRecursive = true;
@@ -323,7 +336,7 @@ export default Vue.extend({
         getNextFavorites(this.getApiKey, this.getNextUrl).then(
           (results: Favorites) => {
             results.collection.forEach((item) => {
-              if (item.track) {
+              if (item.track && !this.tracklist.includes(item.track)) {
                 this.tracklist.push(item.track);
               }
             });
@@ -454,6 +467,21 @@ export default Vue.extend({
         animation: spin 1.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
       }
     }
+
+    &Remove {
+      position: absolute;
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      margin-right: 6rem;
+      padding: 1rem;
+      z-index: 1;
+
+      &Icon {
+        height: 2rem;
+        width: 2rem;
+      }
+    }
   }
 
   &-viewSwitch {
@@ -546,6 +574,12 @@ export default Vue.extend({
 
       &Icon {
         filter: invert(100%);
+      }
+
+      &Remove {
+        &Icon {
+          filter: invert(100%);
+        }
       }
     }
 
