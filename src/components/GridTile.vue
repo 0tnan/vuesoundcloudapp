@@ -1,5 +1,9 @@
 <template>
-  <div @click="setSong(track)" class="GridTile">
+  <div
+    @click="setSong(track)"
+    class="GridTile"
+    :class="{ 'GridTile--dark': getDarkMode }"
+  >
     <img
       loading="lazy"
       class="GridTile-cover"
@@ -20,11 +24,23 @@ export default Vue.extend({
 
 <style lang="scss" scoped>
 .GridTile {
+  $block: &;
+
   height: 21rem;
   width: 15rem;
   border-radius: 3rem;
   background: $light;
   margin-bottom: 2.5rem;
+  transition: all 0.5s;
+
+  &--dark {
+    background: $dark;
+
+    & #{$block}-title,
+    & #{$block}-artist {
+      color: $white;
+    }
+  }
 
   &-cover {
     border-radius: 3rem;
