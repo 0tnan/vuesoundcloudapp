@@ -473,7 +473,7 @@ export default Vue.extend({
       top: 50%;
       right: 0;
       transform: translateY(-50%);
-      margin-right: 6rem;
+      margin-right: 6.5rem;
       padding: 1rem;
       z-index: 1;
 
