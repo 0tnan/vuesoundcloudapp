@@ -819,11 +819,11 @@ export default Vue.extend({
         });
       } else if (this.loopAll && !this.loopOne) {
         if (this.getNextUrl === null) {
-          const firstSong = this.queue[0].track;
-          if (firstSong) {
+          const firstSong = this.queue.find((item) => item.track !== undefined);
+          if (firstSong && firstSong.track) {
             store.dispatch("updateSong", {
-              track: firstSong,
-              mediaUrl: firstSong.media.transcodings[1].url,
+              track: firstSong.track,
+              mediaUrl: firstSong.track.media.transcodings[1].url,
             });
           }
         } else {
