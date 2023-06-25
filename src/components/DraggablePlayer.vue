@@ -311,10 +311,9 @@
 </template>
 
 <script lang="ts">
-import { FavoriteItem } from "@/interfaces/favorite-item";
 import { debounce, isEqual } from "lodash";
 import store from "@/store";
-import Vue from "vue";
+import Vue, { PropType } from "vue";
 import { mapGetters } from "vuex";
 import { Track } from "@/interfaces/track";
 import { StyleValue } from "vue/types/jsx";
@@ -381,9 +380,9 @@ export default Vue.extend({
     };
   },
   props: {
-    hideDraggablePlayer: {
-      type: Boolean,
-      default: false,
+    filteredList: {
+      type: Array as PropType<Track[]>,
+      default: () => [],
     },
   },
   mounted() {
@@ -443,35 +442,43 @@ export default Vue.extend({
     currentTitle(): string {
       return this.getCurrentSong ? this.getCurrentSong.title : null;
     },
-    queue(): FavoriteItem[] {
-      return this.getFavorites ? this.getFavorites.collection : null;
+    queue(): Track[] {
+      return this.filteredList ? this.filteredList : [];
     },
     currentSongIndex(): number | null {
       if (this.queue) {
         return this.queue.findIndex((item) =>
-          isEqual(item.track, this.getCurrentSong)
+          isEqual(item, this.getCurrentSong)
         );
       }
       return null;
     },
-    previousTrack(): Track | undefined {
-      let previous = {} as FavoriteItem;
+    previousTrack(): Track | undefined | null {
+      let previous = {} as Track;
       if (this.currentSongIndex) {
         previous = this.queue[this.currentSongIndex - 1];
       }
-      if (previous) {
-        return previous.track;
+
+      if (this.currentSongIndex === 0) {
+        return null;
       }
-      return undefined;
+
+      if (previous) {
+        return previous;
+      }
+
+      return null;
     },
-    previousMediaArtwork(): string {
-      return this.previousTrack ? this.previousTrack.artwork_url : "";
+    previousMediaArtwork(): string | null {
+      return this.previousTrack ? this.previousTrack.artwork_url : null;
     },
-    previousAvatarArtwork(): string {
-      return this.previousTrack ? this.previousTrack.user.avatar_url : "";
+    previousAvatarArtwork(): string | null {
+      return this.previousTrack && this.previousTrack.user
+        ? this.previousTrack.user.avatar_url
+        : null;
     },
     nextTrack(): Track | undefined | null {
-      let next = {} as FavoriteItem;
+      let next = {} as Track;
       if (this.currentSongIndex !== null) {
         next = this.queue[this.currentSongIndex + 1];
       }
@@ -480,7 +487,7 @@ export default Vue.extend({
         return undefined;
       }
       if (next) {
-        return next.track;
+        return next;
       }
       return null;
     },
@@ -671,6 +678,16 @@ export default Vue.extend({
       }
     },
     next() {
+      if (this.loopAll && !this.nextTrack) {
+        const firstSong = this.queue.find((item) => item !== undefined);
+        if (firstSong) {
+          store.dispatch("updateSong", {
+            track: firstSong,
+            mediaUrl: firstSong.media.transcodings[1].url,
+          });
+        }
+        return;
+      }
       if (this.nextTrack && !this.shuffleActive) {
         store.dispatch("updateSong", {
           track: this.nextTrack,
@@ -678,7 +695,7 @@ export default Vue.extend({
         });
       } else if (!this.nextTrack && !this.shuffleActive) {
         return;
-      } else {
+      } else if (this.shuffleActive) {
         const randomTrack = this.getRandomSong();
         if (randomTrack) {
           store.dispatch("updateSong", {
@@ -720,7 +737,7 @@ export default Vue.extend({
         randomIndex = this.generateRandomNumber();
       }
       this.shuffleArray.push(randomIndex);
-      track = this.queue[randomIndex].track;
+      track = this.queue[randomIndex];
       return track;
     },
     generateRandomNumber(): number {
@@ -819,11 +836,11 @@ export default Vue.extend({
         });
       } else if (this.loopAll && !this.loopOne) {
         if (this.getNextUrl === null) {
-          const firstSong = this.queue.find((item) => item.track !== undefined);
-          if (firstSong && firstSong.track) {
+          const firstSong = this.queue.find((item) => item !== undefined);
+          if (firstSong) {
             store.dispatch("updateSong", {
-              track: firstSong.track,
-              mediaUrl: firstSong.track.media.transcodings[1].url,
+              track: firstSong,
+              mediaUrl: firstSong.media.transcodings[1].url,
             });
           }
         } else {
