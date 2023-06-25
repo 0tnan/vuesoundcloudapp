@@ -835,7 +835,7 @@ export default Vue.extend({
           mediaUrl: this.getCurrentSong.media.transcodings[1].url,
         });
       } else if (this.loopAll && !this.loopOne) {
-        if (this.getNextUrl === null) {
+        if (this.currentSongIndex === this.queueLength - 1) {
           const firstSong = this.queue.find((item) => item !== undefined);
           if (firstSong) {
             store.dispatch("updateSong", {
