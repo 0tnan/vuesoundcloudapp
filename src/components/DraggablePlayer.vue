@@ -387,6 +387,7 @@ export default Vue.extend({
     },
   },
   mounted() {
+    this.audio = new Audio("");
     this.viewportHeight = window.innerHeight;
 
     const player = document.getElementById("player");
@@ -469,15 +470,19 @@ export default Vue.extend({
     previousAvatarArtwork(): string {
       return this.previousTrack ? this.previousTrack.user.avatar_url : "";
     },
-    nextTrack(): Track | undefined {
+    nextTrack(): Track | undefined | null {
       let next = {} as FavoriteItem;
       if (this.currentSongIndex !== null) {
         next = this.queue[this.currentSongIndex + 1];
       }
+
+      if (this.currentSongIndex === -1) {
+        return undefined;
+      }
       if (next) {
         return next.track;
       }
-      return undefined;
+      return null;
     },
     nextMediaArtwork(): string {
       return this.nextTrack ? this.nextTrack.artwork_url : "";
@@ -766,7 +771,7 @@ export default Vue.extend({
         setTimeout(() => {
           this.dotStyle = {
             transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
-            transition: `all ${this.currentSongDuration}ms linear`,
+            transition: `transform ${this.currentSongDuration}ms linear, background 0s`,
           };
         }, 500);
       } else if (
@@ -781,7 +786,7 @@ export default Vue.extend({
         setTimeout(() => {
           this.dotStyle = {
             transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
-            transition: `all ${remainingDuration}ms linear`,
+            transition: `transform ${remainingDuration}ms linear, background 0s`,
           };
         }, 500);
       }
@@ -883,7 +888,7 @@ export default Vue.extend({
     startAnimation() {
       this.dotStyle = {
         transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
-        transition: `all ${this.currentSongDuration}ms linear`,
+        transition: `transform ${this.currentSongDuration}ms linear, background 0s`,
       };
     },
     resetDotAnimation() {
@@ -904,6 +909,22 @@ export default Vue.extend({
         resolve(this.currentSongDuration);
       });
     },
+    whenAudioReady(): Promise<boolean> {
+      return new Promise((resolve, reject) => {
+        const onCanPlayThrough = () => {
+          this.audio.removeEventListener("canplaythrough", onCanPlayThrough);
+          resolve(true);
+        };
+
+        const onError = (error: Event) => {
+          this.audio.removeEventListener("error", onError);
+          reject(error);
+        };
+
+        this.audio.addEventListener("canplaythrough", onCanPlayThrough);
+        this.audio.addEventListener("error", onError);
+      });
+    },
     async handleVisibility() {
       if (!document.hidden && this.audio) {
         const remainingDuration =
@@ -918,7 +939,7 @@ export default Vue.extend({
           setTimeout(() => {
             this.dotStyle = {
               transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
-              transition: `all ${remainingDuration}ms linear`,
+              transition: `transform ${remainingDuration}ms linear, background 0s`,
             };
           }, 500);
         }
@@ -932,8 +953,9 @@ export default Vue.extend({
       }
     },
     getCurrentMediaUrl: {
-      async handler(newVal) {
+      handler(newVal) {
         if (this.audio) {
+          this.resetDotPosition();
           this.disableWhileFetching = true;
           this.audio.removeEventListener("timeupdate", this.updateHandler);
           this.audio.removeEventListener("play", this.playHandler);
@@ -943,22 +965,21 @@ export default Vue.extend({
           this.paused = true;
           this.audio.currentTime = 0;
           this.currentSongDuration = 0;
-          this.audio = new Audio(newVal.url);
+          this.audio.src = newVal.url;
           this.audio.addEventListener("timeupdate", this.updateHandler);
           this.audio.addEventListener("play", this.playHandler);
           this.audio.addEventListener("pause", this.pauseHandler);
           this.audio.addEventListener("ended", this.endHandler);
-          this.currentSongDuration = await this.getSongDuration();
-          const interval = setInterval(() => {
-            if (this.currentSongDuration > 0) {
-              this.audio.play();
-              this.paused = false;
-              this.currentTime = 0;
-              this.resetDotAnimation();
-              clearInterval(interval);
-              this.disableWhileFetching = false;
-            }
-          }, 10);
+          this.getSongDuration().then((duration) => {
+            this.currentSongDuration = duration;
+            this.audio.play();
+            this.paused = false;
+            this.currentTime = 0;
+            this.disableWhileFetching = false;
+          });
+          this.whenAudioReady().then(() => {
+            this.resetDotAnimation();
+          });
         }
       },
       deep: true,
@@ -1033,6 +1054,23 @@ export default Vue.extend({
       &Bar,
       &Dot {
         background: $white;
+      }
+
+      &Shuffle {
+        &--active {
+          &::after {
+            background: $white;
+          }
+        }
+      }
+
+      &Repeat {
+        &--one,
+        &--all {
+          &::after {
+            color: $white;
+          }
+        }
       }
     }
   }
@@ -1302,7 +1340,7 @@ export default Vue.extend({
       width: 2rem;
       border-radius: 50%;
       background: $black;
-      transition: all 0.5s ease-in;
+      transition: transform 0.5s ease-in, background 0s ease-in;
     }
 
     &Controls {

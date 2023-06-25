@@ -377,52 +377,6 @@ export default Vue.extend({
   overflow: hidden;
   transition: all 0.5s;
 
-  &--dark {
-    & #{$block}-fetching {
-      color: $white;
-    }
-
-    & #{$block}-username {
-      color: $white;
-    }
-
-    & #{$block}-settings {
-      &Icon {
-        filter: invert(100%);
-      }
-    }
-
-    & #{$block}-search {
-      &Input {
-        background: $dark;
-
-        &::placeholder {
-          color: $white;
-        }
-      }
-
-      &Refresh {
-        background: $dark;
-
-        &Icon {
-          filter: invert(100%);
-        }
-      }
-
-      &Icon {
-        filter: invert(100%);
-      }
-    }
-
-    & #{$block}-loadingContainer {
-      filter: invert(100%);
-    }
-
-    & #{$block}-viewSwitchTitle {
-      color: $white;
-    }
-  }
-
   &-loading {
     &Container {
       width: 100%;
@@ -445,7 +399,7 @@ export default Vue.extend({
   }
 
   &-settingsIcon {
-    margin-right: 1.25rem;
+    padding: 1.25rem;
   }
 
   &-text {
@@ -549,11 +503,63 @@ export default Vue.extend({
   ::-webkit-scrollbar {
     width: 0.5rem;
     position: absolute;
+    scrollbar-color: $black;
   }
 
   ::-webkit-scrollbar-thumb {
     background: $black;
     border-radius: 5rem;
+  }
+
+  &--dark {
+    & #{$block}-fetching {
+      color: $white;
+    }
+
+    & #{$block}-username {
+      color: $white;
+    }
+
+    & #{$block}-settings {
+      &Icon {
+        filter: invert(100%);
+      }
+    }
+
+    & #{$block}-search {
+      &Input {
+        background: $dark;
+        color: $white;
+
+        &::placeholder {
+          color: $white;
+        }
+      }
+
+      &Refresh {
+        background: $dark;
+
+        &Icon {
+          filter: invert(100%);
+        }
+      }
+
+      &Icon {
+        filter: invert(100%);
+      }
+    }
+
+    & #{$block}-loadingContainer {
+      filter: invert(100%);
+    }
+
+    & #{$block}-viewSwitchTitle {
+      color: $white;
+    }
+
+    & ::-webkit-scrollbar-thumb {
+      background: $white;
+    }
   }
 }
 </style>
