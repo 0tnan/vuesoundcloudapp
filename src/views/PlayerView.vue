@@ -1,18 +1,26 @@
 <template>
-  <div id="player" class="Player">
+  <div id="player" class="Player" :class="{ 'Player--dark': getDarkMode }">
     <DraggablePlayer
       @disallowScroll="disableScroll"
       @getNextFavorites="updateFavorites"
       @recursiveGetFavorites="recursiveGetNextFavorites"
     ></DraggablePlayer>
+    <transition name="slide" appear>
+      <SettingsComponent
+        @toggleSettings="toggleSettings"
+        @reset="reset"
+        @populate="populateFavorites"
+        v-if="showSettings"
+      ></SettingsComponent>
+    </transition>
     <div class="Player-topContainer">
       <div class="Player-text">
         <p class="Player-fetching">Fetching from</p>
         <p class="Player-username">{{ username }}</p>
       </div>
-      <div class="Player-settingsIcon">
+      <button @click="toggleSettings" class="Player-settingsIcon">
         <img src="@/assets/icons/settings.svg" />
-      </div>
+      </button>
     </div>
     <div class="Player-search">
       <input
@@ -29,7 +37,10 @@
         :class="{ 'Player-searchRefresh--on': isRefreshing }"
         :disabled="refreshDisabled"
       >
-        <img src="@/assets/icons/refresh.svg" />
+        <img
+          class="Player-searchRefreshIcon"
+          src="@/assets/icons/refresh.svg"
+        />
       </button>
     </div>
     <div class="Player-viewSwitch">
@@ -40,28 +51,32 @@
           v-if="gridEnabled"
           class="Player-viewSwitchGrid Player-viewSwitchButton"
         >
-          <img src="@/assets/icons/gridLightEnabled.svg" />
+          <img v-if="!getDarkMode" src="@/assets/icons/gridLightEnabled.svg" />
+          <img v-else src="@/assets/icons/gridDarkEnabled.svg" />
         </button>
         <button
           @click="switchToGrid"
           v-else
           class="Player-viewSwitchGrid Player-viewSwitchButton"
         >
-          <img src="@/assets/icons/gridLightDisabled.svg" />
+          <img v-if="!getDarkMode" src="@/assets/icons/gridLightDisabled.svg" />
+          <img v-else src="@/assets/icons/gridDarkDisabled.svg" />
         </button>
         <button
           @click="switchToList"
           v-if="!gridEnabled"
           class="Player-viewSwitchList Player-viewSwitchButton"
         >
-          <img src="@/assets/icons/listLightEnabled.svg" />
+          <img v-if="!getDarkMode" src="@/assets/icons/listLightEnabled.svg" />
+          <img v-else src="@/assets/icons/listDarkEnabled.svg" />
         </button>
         <button
           @click="switchToList"
           v-else
           class="Player-viewSwitchList Player-viewSwitchButton"
         >
-          <img src="@/assets/icons/listLightDisabled.svg" />
+          <img v-if="!getDarkMode" src="@/assets/icons/listLightDisabled.svg" />
+          <img v-else src="@/assets/icons/listDarkDisabled.svg" />
         </button>
       </div>
     </div>
@@ -166,6 +181,7 @@ import { mapGetters } from "vuex";
 import GridTile from "@/components/GridTile.vue";
 import ListTile from "@/components/ListTile.vue";
 import DraggablePlayer from "@/components/DraggablePlayer.vue";
+import SettingsComponent from "@/components/SettingsComponent.vue";
 import { getFavorites, getNextFavorites } from "../utils/soundcloud-api";
 import store from "@/store";
 import { debounce } from "lodash";
@@ -175,6 +191,7 @@ export default Vue.extend({
     GridTile,
     ListTile,
     DraggablePlayer,
+    SettingsComponent,
   },
   data() {
     return {
@@ -185,6 +202,7 @@ export default Vue.extend({
       launchedRecursive: false,
       isRefreshing: false,
       refreshDisabled: false,
+      showSettings: false,
     };
   },
   created() {
@@ -203,6 +221,7 @@ export default Vue.extend({
       "getFavorites",
       "getUser",
       "getNextUrl",
+      "getDarkMode",
     ]),
     username(): string {
       return this.getUser.username;
@@ -331,6 +350,12 @@ export default Vue.extend({
         queue.style.overflowY = "auto";
       }
     },
+    toggleSettings() {
+      this.showSettings = !this.showSettings;
+    },
+    reset() {
+      this.tracklist = [];
+    },
   },
   watch: {
     getNextUrl(newVal) {
@@ -344,10 +369,59 @@ export default Vue.extend({
 
 <style lang="scss" scoped>
 .Player {
+  $block: &;
+
   padding: 4rem 2.5rem;
   height: 100%;
   position: relative;
   overflow: hidden;
+  transition: all 0.5s;
+
+  &--dark {
+    & #{$block}-fetching {
+      color: $white;
+    }
+
+    & #{$block}-username {
+      color: $white;
+    }
+
+    & #{$block}-settings {
+      &Icon {
+        filter: invert(100%);
+      }
+    }
+
+    & #{$block}-search {
+      &Input {
+        background: $dark;
+
+        &::placeholder {
+          color: $white;
+        }
+      }
+
+      &Refresh {
+        background: $dark;
+
+        &Icon {
+          filter: invert(100%);
+        }
+      }
+
+      &Icon {
+        filter: invert(100%);
+      }
+    }
+
+    & #{$block}-loadingContainer {
+      filter: invert(100%);
+    }
+
+    & #{$block}-viewSwitchTitle {
+      color: $white;
+    }
+  }
 
   &-loading {
     &Container {

@@ -3,4 +3,5 @@ export enum LocalStorage {
   User = "vuesoundcloud-user",
   ProfileId = "vuesoundcloud-profile-id",
   NextUrl = "vuesoundcloud-next-url",
+  DarkMode = "vuesoundcloud-dark-mode",
 }

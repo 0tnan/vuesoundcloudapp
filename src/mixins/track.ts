@@ -1,6 +1,7 @@
 import Vue from "vue";
 import store from "@/store";
 import { Track } from "@/interfaces/track";
+import { mapGetters } from "vuex";
 
 export default Vue.extend({
   props: {
@@ -29,6 +30,7 @@ export default Vue.extend({
     },
   },
   computed: {
+    ...mapGetters(["getDarkMode"]),
     artwork(): string {
       return this.track.artwork_url;
     },

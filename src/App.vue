@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="App">
+  <div id="app" class="App" :class="{ 'App--dark': getDarkMode }">
     <router-view />
   </div>
 </template>
@@ -13,10 +13,21 @@ import { getFavorites } from "./utils/soundcloud-api";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
 import { Capacitor } from "@capacitor/core";
+import { mapGetters } from "vuex";
 
 export default Vue.extend({
   async created() {
+    const darkMode = localStorage.getItem(LocalStorage.DarkMode);
+    let parsedDarkMode = false;
+    darkMode ? (parsedDarkMode = JSON.parse(darkMode)) : false;
+    store.commit("setDarkMode", parsedDarkMode);
+
     if (Capacitor.getPlatform() === "ios") {
+      if (darkMode) {
+        await StatusBar.setStyle({ style: Style.Dark });
+      } else {
+        await StatusBar.setStyle({ style: Style.Light });
+      }
       await StatusBar.setStyle({ style: Style.Light });
       Keyboard.setScroll({ isDisabled: true });
       Keyboard.setResizeMode({ mode: KeyboardResize.None });
@@ -46,6 +57,9 @@ export default Vue.extend({
       }
     });
   },
+  computed: {
+    ...mapGetters(["getDarkMode"]),
+  },
 });
 </script>
 
@@ -55,5 +69,10 @@ export default Vue.extend({
 .App {
   height: 100%;
   padding: 5rem 0;
+  transition: all 0.5s;
+
+  &--dark {
+    background: $black;
+  }
 }
 </style>

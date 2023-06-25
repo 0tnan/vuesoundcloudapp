@@ -3,6 +3,7 @@
     ref="draggable"
     id="draggable"
     class="DraggablePlayer"
+    :class="{ 'DraggablePlayer--dark': getDarkMode }"
     :style="draggableStyle"
   >
     <div class="DraggablePlayer-dragButton" :style="buttonStyle"></div>
@@ -38,6 +39,12 @@
       <div class="DraggablePlayer-miniPlayerControls">
         <button class="DraggablePlayer-miniPlayerPrevious" @click="previous">
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/previousDark.svg"
+            class="DraggablePlayer-contentTopIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/previousLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
@@ -49,6 +56,12 @@
           :disabled="disableWhileFetching"
         >
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/playDark.svg"
+            class="DraggablePlayer-contentTopIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/playLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
@@ -60,12 +73,24 @@
           :disabled="disableWhileFetching"
         >
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/pauseDark.svg"
+            class="DraggablePlayer-contentTopIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/pauseLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
         </button>
         <button class="DraggablePlayer-miniPlayerNext" @click="next">
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/nextDark.svg"
+            class="DraggablePlayer-contentTopIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/nextLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
@@ -83,6 +108,12 @@
           @click="dragDown"
         >
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/returnDark.svg"
+            class="DraggablePlayer-contentTopIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/returnLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
@@ -168,6 +199,12 @@
           @click="repeat"
         >
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/loopDark.svg"
+            class="DraggablePlayer-contentTopIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/loopLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
@@ -178,6 +215,12 @@
           @click="shuffle"
         >
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/shuffleDark.svg"
+            class="DraggablePlayer-contentTopIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/shuffleLight.svg"
             class="DraggablePlayer-contentTopIcon"
           />
@@ -206,6 +249,12 @@
           @click="previous"
         >
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/previousDark.svg"
+            class="DraggablePlayer-contentControlsIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/previousLight.svg"
             class="DraggablePlayer-contentControlsIcon"
           />
@@ -217,6 +266,12 @@
           :disabled="disableWhileFetching"
         >
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/playDark.svg"
+            class="DraggablePlayer-contentControlsIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/playLight.svg"
             class="DraggablePlayer-contentControlsIcon"
           />
@@ -228,12 +283,24 @@
           :disabled="disableWhileFetching"
         >
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/pauseDark.svg"
+            class="DraggablePlayer-contentControlsIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/pauseLight.svg"
             class="DraggablePlayer-contentControlsIcon"
           />
         </button>
         <button class="DraggablePlayer-contentControlsNext Touch" @click="next">
           <img
+            v-if="getDarkMode"
+            src="@/assets/icons/nextDark.svg"
+            class="DraggablePlayer-contentControlsIcon"
+          />
+          <img
+            v-else
             src="@/assets/icons/nextLight.svg"
             class="DraggablePlayer-contentControlsIcon"
           />
@@ -354,6 +421,7 @@ export default Vue.extend({
       "getCurrentSong",
       "getFavorites",
       "getNextUrl",
+      "getDarkMode",
     ]),
     hasCurrentSong(): boolean {
       return this.getCurrentMediaUrl ? true : false;
@@ -616,7 +684,6 @@ export default Vue.extend({
       }
     },
     repeat() {
-      console.log("loop");
       if (!this.loopAll && !this.loopOne) {
         this.loopOne = true;
       } else if (this.loopOne && !this.loopAll) {
@@ -646,7 +713,6 @@ export default Vue.extend({
         randomIndex === -1
       ) {
         randomIndex = this.generateRandomNumber();
-        console.log(randomIndex);
       }
       this.shuffleArray.push(randomIndex);
       track = this.queue[randomIndex].track;
@@ -925,8 +991,50 @@ export default Vue.extend({
   transition: all 0.5s ease-in;
   opacity: 95%;
 
-  &--hide {
-    height: 2%;
+  &--dark {
+    background: $dark;
+
+    & #{$block}-drag {
+      &Button {
+        background: $white;
+      }
+    }
+
+    & #{$block}-miniPlayer {
+      color: $white;
+
+      &Title,
+      &Artist {
+        color: $white;
+      }
+    }
+
+    & #{$block}-content {
+      &Top {
+        &Text {
+          color: $white;
+        }
+      }
+
+      &Slider {
+        &Current {
+          &Empty,
+          &Title,
+          &Artist {
+            color: $white;
+          }
+        }
+      }
+
+      &Duration {
+        color: $white;
+      }
+
+      &Bar,
+      &Dot {
+        background: $white;
+      }
+    }
   }
 
   &-drag {

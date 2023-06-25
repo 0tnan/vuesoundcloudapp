@@ -1,5 +1,9 @@
 <template>
-  <div class="ListTile" @click="setSong(track)">
+  <div
+    class="ListTile"
+    @click="setSong(track)"
+    :class="{ 'ListTile--dark': getDarkMode }"
+  >
     <img
       loading="lazy"
       class="ListTile-cover"
@@ -22,9 +26,18 @@ export default Vue.extend({
 
 <style lang="scss" scoped>
 .ListTile {
+  $block: &;
+
   display: flex;
   height: 7.5rem;
   margin-bottom: 1.5rem;
+
+  &--dark {
+    & #{$block}-title,
+    & #{$block}-artist {
+      color: $white;
+    }
+  }
 
   &-cover {
     border-radius: 1.5rem;
