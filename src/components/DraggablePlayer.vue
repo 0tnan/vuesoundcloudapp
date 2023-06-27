@@ -1159,12 +1159,12 @@ export default Vue.extend({
 
     &Artist {
       font-size: $s;
+      margin-top: 0.5rem;
     }
 
     &Title {
       font-weight: 600;
       font-size: $m;
-      margin-bottom: 0.2rem;
     }
 
     &Artist,
