@@ -3,6 +3,12 @@ import { User } from "@/interfaces/user";
 import { CapacitorHttp } from "@capacitor/core";
 
 const API_URL = "https://api-v2.soundcloud.com";
+const soundcloudOptions = {
+  headers: {
+    Origin: "https://soundcloud.com",
+    Referer: "https://soundcloud.com",
+  },
+};
 
 export async function getFavorites(
   apiKey: string,
@@ -10,6 +16,7 @@ export async function getFavorites(
 ): Promise<Favorites> {
   return new Promise((resolve, reject) => {
     const options = {
+      ...soundcloudOptions,
       url: `${API_URL}/users/${profileId}/likes?client_id=${apiKey}`,
     };
     CapacitorHttp.get(options)
@@ -33,6 +40,7 @@ export async function getProfileInfos(
 ): Promise<User> {
   return new Promise((resolve, reject) => {
     const options = {
+      ...soundcloudOptions,
       url: `${API_URL}/users/${profileId}?client_id=${apiKey}`,
     };
     CapacitorHttp.get(options)
@@ -56,6 +64,7 @@ export async function getNextFavorites(
 ): Promise<Favorites> {
   return new Promise((resolve, reject) => {
     const options = {
+      ...soundcloudOptions,
       url: `${nextUrl}&client_id=${apiKey}`,
     };
     CapacitorHttp.get(options)
@@ -79,6 +88,7 @@ export async function getMediaFinalUrl(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const options = {
+      ...soundcloudOptions,
       url: `${audioUrl}?client_id=${apiKey}`,
     };
     CapacitorHttp.get(options)
