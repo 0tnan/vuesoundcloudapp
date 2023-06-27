@@ -1075,10 +1075,6 @@ export default Vue.extend({
             this.currentTime = 0;
             this.disableWhileFetching = false;
           });
-          MediaSession.setPositionState({
-            position: this.audio.currentTime,
-            duration: this.audio.duration,
-          });
           MediaSession.setMetadata({
             title: this.currentTitle,
             artist: this.currentArtist,
@@ -1094,6 +1090,10 @@ export default Vue.extend({
           });
           this.whenAudioReady().then(() => {
             this.resetDotAnimation();
+            MediaSession.setPositionState({
+              position: this.audio.currentTime,
+              duration: this.audio.duration,
+            });
           });
         }
       },
