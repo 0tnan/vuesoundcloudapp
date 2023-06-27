@@ -1154,7 +1154,7 @@ export default Vue.extend({
       width: 7.5rem;
       height: 7.5rem;
       border-radius: 1.5rem;
-      margin-right: 1rem;
+      margin-right: 1.5rem;
     }
 
     &Artist {
