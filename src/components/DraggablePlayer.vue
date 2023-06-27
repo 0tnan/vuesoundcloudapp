@@ -22,7 +22,7 @@
       <div v-else class="DraggablePlayer-miniPlayerSong" @click="dragUp">
         <img
           loading="lazy"
-          :src="getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)"
+          :src="getCurrentFullScaleImage"
           class="DraggablePlayer-miniPlayerArtwork"
         />
         <div class="DraggablePlayer-miniPlayerInfos">
@@ -132,12 +132,7 @@
                 <img
                   v-if="previousTrack"
                   loading="lazy"
-                  :src="
-                    getFullScaleImage(
-                      previousMediaArtwork,
-                      previousAvatarArtwork
-                    )
-                  "
+                  :src="getPreviousFullScaleImage"
                   class="DraggablePlayer-contentSliderPreviousArtwork"
                 />
               </div>
@@ -146,16 +141,12 @@
               <div class="DraggablePlayer-contentSliderCurrentImageContainer">
                 <img
                   loading="lazy"
-                  :src="
-                    getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)
-                  "
+                  :src="getCurrentFullScaleImage"
                   class="DraggablePlayer-contentSliderCurrentArtwork"
                 />
                 <img
                   loading="lazy"
-                  :src="
-                    getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)
-                  "
+                  :src="getCurrentFullScaleImage"
                   class="DraggablePlayer-contentSliderCurrentArtwork--blurred"
                 />
               </div>
@@ -179,7 +170,7 @@
                 <img
                   v-if="nextTrack"
                   loading="lazy"
-                  :src="getFullScaleImage(nextMediaArtwork, nextAvatarArtwork)"
+                  :src="getNextFullScaleImage"
                   class="DraggablePlayer-contentSliderNextArtwork"
                 />
               </div>
@@ -315,6 +306,7 @@ import Vue, { PropType } from "vue";
 import { mapGetters } from "vuex";
 import { Track } from "@/interfaces/track";
 import { StyleValue } from "vue/types/jsx";
+import { MediaSession } from "@jofr/capacitor-media-session";
 
 const INITIAL_POSITION = "12%";
 const TRANSITION = "all 0.5s ease-in";
@@ -432,6 +424,23 @@ export default Vue.extend({
         ? this.getCurrentSong.user.avatar_url
         : null;
     },
+    getCurrentFullScaleImage(): string {
+      if (this.currentMediaArtwork) {
+        const highDefinitionUrl = this.currentMediaArtwork.replace(
+          "-large",
+          "-t500x500"
+        );
+        return highDefinitionUrl;
+      } else if (!this.currentMediaArtwork && !!this.currentAvatarArtwork) {
+        const highDefinitionUrl = this.currentAvatarArtwork.replace(
+          "-large",
+          "-t500x500"
+        );
+        return highDefinitionUrl;
+      } else {
+        return "";
+      }
+    },
     currentArtist(): string {
       return this.getCurrentSong.user
         ? this.getCurrentSong.user.username
@@ -475,6 +484,23 @@ export default Vue.extend({
         ? this.previousTrack.user.avatar_url
         : null;
     },
+    getPreviousFullScaleImage(): string {
+      if (this.previousMediaArtwork) {
+        const highDefinitionUrl = this.previousMediaArtwork.replace(
+          "-large",
+          "-t500x500"
+        );
+        return highDefinitionUrl;
+      } else if (!this.previousMediaArtwork && !!this.previousAvatarArtwork) {
+        const highDefinitionUrl = this.previousAvatarArtwork.replace(
+          "-large",
+          "-t500x500"
+        );
+        return highDefinitionUrl;
+      } else {
+        return "";
+      }
+    },
     nextTrack(): Track | undefined | null {
       let next = {} as Track;
       if (this.currentSongIndex !== null) {
@@ -494,6 +520,23 @@ export default Vue.extend({
     },
     nextAvatarArtwork(): string {
       return this.nextTrack ? this.nextTrack.user.avatar_url : "";
+    },
+    getNextFullScaleImage(): string {
+      if (this.nextMediaArtwork) {
+        const highDefinitionUrl = this.nextMediaArtwork.replace(
+          "-large",
+          "-t500x500"
+        );
+        return highDefinitionUrl;
+      } else if (!this.nextMediaArtwork && !!this.nextAvatarArtwork) {
+        const highDefinitionUrl = this.nextAvatarArtwork.replace(
+          "-large",
+          "-t500x500"
+        );
+        return highDefinitionUrl;
+      } else {
+        return "";
+      }
     },
     queueLength(): number {
       return this.queue ? this.queue.length : 0;
@@ -613,6 +656,10 @@ export default Vue.extend({
       let newTime = songDuration * progress;
       if (this.audio && songDuration > 0) {
         this.audio.currentTime = newTime / 1000;
+        MediaSession.setPositionState({
+          position: this.audio.currentTime,
+          duration: this.audio.duration,
+        });
         if (this.paused) {
           this.onPause();
           this.isSeeking = false;
@@ -743,17 +790,6 @@ export default Vue.extend({
         ? Math.floor(Math.random() * this.queueLength)
         : 0;
     },
-    getFullScaleImage(url: string, avatar_url: string): string | undefined {
-      if (url) {
-        const highDefinitionUrl = url.replace("-large", "-t500x500");
-        return highDefinitionUrl;
-      } else if (!url && !!avatar_url) {
-        const highDefinitionUrl = avatar_url.replace("-large", "-t500x500");
-        return highDefinitionUrl;
-      } else {
-        return undefined;
-      }
-    },
     updateTime(): Promise<number> {
       return new Promise((resolve) => {
         this.currentTime = this.audio.currentTime * 1000;
@@ -765,6 +801,15 @@ export default Vue.extend({
       });
     },
     async onPlay() {
+      MediaSession.setPositionState({
+        position: this.audio.currentTime,
+        duration: this.audio.duration,
+      });
+
+      MediaSession.setPlaybackState({
+        playbackState: "playing",
+      });
+
       this.paused = false;
       const remainingDuration =
         this.currentSongDuration - (await this.updateTime());
@@ -809,6 +854,15 @@ export default Vue.extend({
       this.isSeeking = false;
     },
     onPause() {
+      MediaSession.setPositionState({
+        position: this.audio.currentTime,
+        duration: this.audio.duration,
+      });
+
+      MediaSession.setPlaybackState({
+        playbackState: "paused",
+      });
+
       this.paused = true;
       const dotPosition = this.getDotPosition();
       if (dotPosition > 0 && dotPosition < this.dotMaxBound) {
@@ -940,24 +994,52 @@ export default Vue.extend({
         this.audio.addEventListener("error", onError);
       });
     },
-    async handleVisibility() {
-      if (!document.hidden && this.audio) {
-        const remainingDuration =
-          this.currentSongDuration - (await this.updateTime());
-        const newPosition =
-          (this.currentTime * this.dotMaxBound) / this.currentSongDuration;
-        this.dotStyle = {
-          transform: `translateX(${newPosition}px) translateY(-50%)`,
-          transition: "none",
-        };
-        if (!this.paused) {
-          setTimeout(() => {
-            this.dotStyle = {
-              transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
-              transition: `transform ${remainingDuration}ms linear, background 0s`,
-            };
-          }, 500);
+    mediaSessionSetup() {
+      MediaSession.setActionHandler({ action: "play" }, () => {
+        this.play();
+      });
+
+      MediaSession.setActionHandler({ action: "pause" }, () => {
+        this.pause();
+      });
+
+      MediaSession.setActionHandler({ action: "nexttrack" }, () => {
+        this.next();
+      });
+
+      MediaSession.setActionHandler({ action: "previoustrack" }, () => {
+        this.previous();
+      });
+
+      MediaSession.setActionHandler({ action: "seekto" }, (details) => {
+        if (details && details.seekTime) {
+          this.audio.currentTime = details.seekTime;
+          this.updateOnExternalControl();
         }
+      });
+    },
+
+    handleVisibility() {
+      if (!document.hidden && this.audio) {
+        this.updateOnExternalControl();
+      }
+    },
+    async updateOnExternalControl() {
+      const remainingDuration =
+        this.currentSongDuration - (await this.updateTime());
+      const newPosition =
+        (this.currentTime * this.dotMaxBound) / this.currentSongDuration;
+      this.dotStyle = {
+        transform: `translateX(${newPosition}px) translateY(-50%)`,
+        transition: "none",
+      };
+      if (!this.paused) {
+        setTimeout(() => {
+          this.dotStyle = {
+            transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
+            transition: `transform ${remainingDuration}ms linear, background 0s`,
+          };
+        }, 500);
       }
     },
   },
@@ -985,12 +1067,30 @@ export default Vue.extend({
           this.audio.addEventListener("play", this.playHandler);
           this.audio.addEventListener("pause", this.pauseHandler);
           this.audio.addEventListener("ended", this.endHandler);
+          this.mediaSessionSetup();
           this.getSongDuration().then((duration) => {
             this.currentSongDuration = duration;
             this.audio.play();
             this.paused = false;
             this.currentTime = 0;
             this.disableWhileFetching = false;
+          });
+          MediaSession.setPositionState({
+            position: this.audio.currentTime,
+            duration: this.audio.duration,
+          });
+          MediaSession.setMetadata({
+            title: this.currentTitle,
+            artist: this.currentArtist,
+            artwork: [
+              {
+                src: this.currentMediaArtwork
+                  ? this.currentMediaArtwork
+                  : this.currentAvatarArtwork,
+                type: "image/png",
+                sizes: "500x500",
+              },
+            ],
           });
           this.whenAudioReady().then(() => {
             this.resetDotAnimation();
