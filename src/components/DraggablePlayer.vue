@@ -18,24 +18,22 @@
       :class="{ 'DraggablePlayer-miniPlayer--hide': hideMiniPlayer }"
       :style="miniPlayerStyle"
     >
-      <transition name="fade">
-        <p v-if="!hasCurrentSong">A bit quiet here...</p>
-        <div v-else class="DraggablePlayer-miniPlayerSong" @click="dragUp">
-          <img
-            loading="lazy"
-            :src="getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)"
-            class="DraggablePlayer-miniPlayerArtwork"
-          />
-          <div class="DraggablePlayer-miniPlayerInfos">
-            <p v-if="currentTitle" class="DraggablePlayer-miniPlayerTitle">
-              {{ currentTitle }}
-            </p>
-            <p v-if="currentArtist" class="DraggablePlayer-miniPlayerArtist">
-              {{ currentArtist }}
-            </p>
-          </div>
+      <p v-if="!hasCurrentSong">A bit quiet here...</p>
+      <div v-else class="DraggablePlayer-miniPlayerSong" @click="dragUp">
+        <img
+          loading="lazy"
+          :src="getFullScaleImage(currentMediaArtwork, currentAvatarArtwork)"
+          class="DraggablePlayer-miniPlayerArtwork"
+        />
+        <div class="DraggablePlayer-miniPlayerInfos">
+          <p v-if="currentTitle" class="DraggablePlayer-miniPlayerTitle">
+            {{ currentTitle }}
+          </p>
+          <p v-if="currentArtist" class="DraggablePlayer-miniPlayerArtist">
+            {{ currentArtist }}
+          </p>
         </div>
-      </transition>
+      </div>
       <div class="DraggablePlayer-miniPlayerControls">
         <button class="DraggablePlayer-miniPlayerPrevious" @click="previous">
           <img
@@ -718,7 +716,7 @@ export default Vue.extend({
     shuffle() {
       if (!this.shuffleActive) {
         this.shuffleActive = true;
-        this.$emit("recursiveGetFavorites");
+        this.$emit("getNextFavorites");
       } else {
         this.shuffleActive = false;
       }

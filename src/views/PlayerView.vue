@@ -3,7 +3,6 @@
     <DraggablePlayer
       @disallowScroll="disableScroll"
       @getNextFavorites="updateFavorites"
-      @recursiveGetFavorites="recursiveGetNextFavorites"
       :filteredList="filteredTrackList"
     ></DraggablePlayer>
     <transition name="slide" appear>
@@ -94,7 +93,7 @@
           class="Player-musicGrid"
         >
           <GridTile
-            v-for="track in tracklist"
+            v-for="track in filteredTrackList"
             :key="track.id"
             :track="track"
           ></GridTile>
@@ -115,7 +114,7 @@
           appear
         >
           <ListTile
-            v-for="track in tracklist"
+            v-for="track in filteredTrackList"
             :key="track.id"
             :track="track"
           ></ListTile>
@@ -132,7 +131,7 @@
     <div v-else class="Player-musicFiltered">
       <transition mode="out-in" name="fade" appear>
         <div
-          @scroll="onScroll"
+          @scroll="onScrollFiltered"
           v-if="gridEnabled"
           key="grid"
           id="queue"
@@ -152,7 +151,7 @@
           </div>
         </div>
         <div
-          @scroll="onScroll"
+          @scroll="onScrollFiltered"
           v-else
           key="list"
           id="queue"
@@ -190,6 +189,8 @@ import { getFavorites, getNextFavorites } from "../utils/soundcloud-api";
 import store from "@/store";
 import { debounce } from "lodash";
 
+const MAX_FILTER_ITEM = 10; // Maximum number of items that will be displayed to avoid too much api calls
+
 export default Vue.extend({
   components: {
     GridTile,
@@ -203,16 +204,20 @@ export default Vue.extend({
       tracklist: [] as Track[],
       scrollEnd: false,
       searchQuery: "",
-      launchedRecursive: false,
       isRefreshing: false,
       refreshDisabled: false,
       showSettings: false,
+      filterTracker: MAX_FILTER_ITEM,
     };
   },
   created() {
     this.updateFavorites = debounce(this.updateFavorites, 1000);
     this.searchTracks = debounce(this.searchTracks, 500);
     this.forceUpdate = debounce(this.forceUpdate, 1000);
+    this.recursiveGetNextFavorites = debounce(
+      this.recursiveGetNextFavorites,
+      500
+    );
   },
   mounted() {
     this.populateFavorites();
@@ -247,6 +252,9 @@ export default Vue.extend({
 
       return uniqueFiltered;
     },
+    filteredTrackListLength(): number {
+      return this.filteredTrackList.length;
+    },
   },
   methods: {
     switchToGrid() {
@@ -255,22 +263,12 @@ export default Vue.extend({
     switchToList() {
       this.gridEnabled = false;
     },
-    onScroll() {
-      const queue = document.getElementById("queue");
-      if (queue) {
-        const isScrollEnd =
-          queue.scrollTop + queue.clientHeight >= queue.scrollHeight;
-        if (isScrollEnd && !!this.getNextUrl) {
-          this.updateFavorites();
-        }
-      }
-    },
     updateFavorites() {
       if (this.getNextUrl !== null) {
         getNextFavorites(this.getApiKey, this.getNextUrl).then(
           (results: Favorites) => {
             results.collection.forEach((item) => {
-              if (item.track) {
+              if (item.track && !this.tracklist.includes(item.track)) {
                 this.tracklist.push(item.track);
               }
             });
@@ -301,7 +299,6 @@ export default Vue.extend({
       this.isRefreshing = true;
       this.refreshDisabled = true;
       this.scrollEnd = false;
-      this.launchedRecursive = false;
       store.commit("setFavorites", {});
       store.commit("setNextUrl", "");
       this.tracklist = [];
@@ -326,8 +323,12 @@ export default Vue.extend({
       this.searchQuery = "";
     },
     searchTracks() {
-      if (this.getNextUrl !== null && !this.launchedRecursive) {
-        this.launchedRecursive = true;
+      if (this.filteredTrackListLength >= this.filterTracker) {
+        this.filterTracker = this.filteredTrackListLength;
+      } else {
+        this.filterTracker = MAX_FILTER_ITEM;
+      }
+      if (this.getNextUrl !== null) {
         this.recursiveGetNextFavorites();
       }
     },
@@ -342,15 +343,36 @@ export default Vue.extend({
             });
             store.commit("addToFavorites", results.collection);
             store.commit("setNextUrl", results.next_href);
-            this.recursiveGetNextFavorites();
+            if (this.filteredTrackListLength < this.filterTracker) {
+              this.recursiveGetNextFavorites();
+            } else if (this.filteredTrackList.length === this.filterTracker) {
+              this.filterTracker += this.filterTracker;
+              return;
+            }
           }
         );
       }
     },
+    scrollHandler(callback: () => void) {
+      const queue = document.getElementById("queue");
+      if (queue) {
+        const isScrollEnd =
+          queue.scrollTop + queue.clientHeight >= queue.scrollHeight;
+        if (isScrollEnd && !!this.getNextUrl) {
+          callback();
+        }
+      }
+    },
+    onScroll() {
+      this.scrollHandler(this.updateFavorites);
+    },
+    onScrollFiltered() {
+      this.scrollHandler(this.recursiveGetNextFavorites);
+    },
     populateFavorites() {
       const favorites = this.getFavorites as Favorites;
       favorites.collection.forEach((item) => {
-        if (item.track) {
+        if (item.track && !this.tracklist.includes(item.track)) {
           this.tracklist.push(item.track);
         }
       });
