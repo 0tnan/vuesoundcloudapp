@@ -701,17 +701,20 @@ export default Vue.extend({
             }
           }
         } else {
-          store.dispatch("updateSong", {
-            track: this.getCurrentSong,
-            mediaUrl: this.getCurrentSong.media.transcodings[1].url,
-          });
+          this.replayCurrentSong();
         }
       } else {
-        store.dispatch("updateSong", {
-          track: this.getCurrentSong,
-          mediaUrl: this.getCurrentSong.media.transcodings[1].url,
-        });
+        this.replayCurrentSong();
       }
+    },
+    replayCurrentSong() {
+      this.resetDotPosition();
+      this.resetDotAnimation();
+      this.audio.currentTime = 0;
+      MediaSession.setPositionState({
+        position: 0,
+        duration: this.audio.duration,
+      });
     },
     play() {
       if (!!this.audio && !!this.getCurrentMediaUrl) {
