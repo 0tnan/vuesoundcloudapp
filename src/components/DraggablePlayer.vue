@@ -1015,9 +1015,17 @@ export default Vue.extend({
       });
 
       MediaSession.setActionHandler({ action: "seekto" }, (details) => {
-        if (details && details.seekTime) {
+        if (
+          details &&
+          details.seekTime !== null &&
+          details.seekTime !== undefined
+        ) {
           this.audio.currentTime = details.seekTime;
           this.updateOnExternalControl();
+          MediaSession.setPositionState({
+            position: this.audio.currentTime,
+            duration: this.audio.duration,
+          });
         }
       });
     },
