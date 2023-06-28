@@ -556,6 +556,7 @@ export default Vue.extend({
           height: `${this.viewportHeight - this.currentPlayerPosition}px`,
           transition: "none",
           opacity: `${TOTAL_OPACITY}%`,
+          transform: `translate3d(0, 0, 0)`,
         };
         let positionFraction =
           (this.viewportHeight - this.topBound - this.currentPlayerPosition) /
@@ -607,6 +608,7 @@ export default Vue.extend({
         height: `${INITIAL_POSITION}`,
         transition: TRANSITION,
         opacity: `${DEFAULT_OPACITY}%`,
+        transform: `translate3d(0, 0, 0)`,
       };
       this.contentStyle = {
         opacity: 0,
@@ -626,6 +628,7 @@ export default Vue.extend({
         height: `${this.maxHeight}px`,
         transition: TRANSITION,
         opacity: `${TOTAL_OPACITY}%`,
+        transform: `translate3d(0, 0, 0)`,
       };
       this.contentStyle = {
         opacity: `${TOTAL_OPACITY}%`,
@@ -1044,11 +1047,6 @@ export default Vue.extend({
     },
   },
   watch: {
-    hideDraggablePlayer(newVal) {
-      if (newVal) {
-        this.draggableStyle = {};
-      }
-    },
     getCurrentMediaUrl: {
       handler(newVal) {
         if (this.audio) {
@@ -1084,16 +1082,30 @@ export default Vue.extend({
                   ? this.currentMediaArtwork
                   : this.currentAvatarArtwork,
                 type: "image/png",
-                sizes: "500x500",
+                sizes: "100x100",
               },
             ],
           });
           this.whenAudioReady().then(() => {
             this.resetDotAnimation();
-            MediaSession.setPositionState({
-              position: this.audio.currentTime,
-              duration: this.audio.duration,
-            });
+            setTimeout(() => {
+              MediaSession.setPositionState({
+                position: this.audio.currentTime,
+                duration: this.audio.duration,
+              });
+
+              MediaSession.setMetadata({
+                title: this.currentTitle,
+                artist: this.currentArtist,
+                artwork: [
+                  {
+                    src: this.getCurrentFullScaleImage,
+                    type: "image/png",
+                    sizes: "500x500",
+                  },
+                ],
+              });
+            }, 500);
           });
         }
       },
@@ -1381,9 +1393,9 @@ export default Vue.extend({
           &--blurred {
             position: absolute;
             left: 0;
-            z-index: 1;
-            filter: blur(1rem);
-            transform: scale(1.05) translateY(1rem);
+            z-index: -1;
+            filter: blur(5rem);
+            transform: scale(1.25) translateY(1rem) translate3d(0, 0, 0);
             opacity: 0.7;
           }
         }
