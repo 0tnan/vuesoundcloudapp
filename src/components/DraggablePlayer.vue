@@ -701,20 +701,24 @@ export default Vue.extend({
             }
           }
         } else {
-          this.replayCurrentSong();
+          this.replayCurrentSong(false);
         }
       } else {
-        this.replayCurrentSong();
+        this.replayCurrentSong(false);
       }
     },
-    replayCurrentSong() {
+    replayCurrentSong(withPlay: boolean) {
       this.resetDotPosition();
       this.resetDotAnimation();
       this.audio.currentTime = 0;
-      MediaSession.setPositionState({
-        position: 0,
-        duration: this.audio.duration,
-      });
+      if (withPlay) {
+        this.audio.play();
+      } else {
+        MediaSession.setPositionState({
+          position: 0,
+          duration: this.audio.duration,
+        });
+      }
     },
     play() {
       if (!!this.audio && !!this.getCurrentMediaUrl) {
@@ -820,13 +824,6 @@ export default Vue.extend({
       const remainingDuration =
         this.currentSongDuration - (await this.updateTime());
       const dotPosition = this.getDotPosition();
-
-      if (this.currentSongEnded && dotPosition === 0) {
-        store.dispatch("updateSong", {
-          track: this.getCurrentSong,
-          mediaUrl: this.getCurrentSong.media.transcodings[1].url,
-        });
-      }
       this.currentSongEnded = false;
 
       if (dotPosition === 0 && !this.currentSongEnded) {
@@ -888,12 +885,15 @@ export default Vue.extend({
       this.seekOffset = { x: 0, y: 0 };
       this.resetDotPosition();
       if (this.loopOne && !this.loopAll) {
-        store.dispatch("updateSong", {
-          track: this.getCurrentSong,
-          mediaUrl: this.getCurrentSong.media.transcodings[1].url,
-        });
+        this.replayCurrentSong(true);
       } else if (this.loopAll && !this.loopOne) {
-        if (this.currentSongIndex === this.queueLength - 1) {
+        if (this.queueLength === 1) {
+          this.replayCurrentSong(true);
+        }
+        if (
+          this.currentSongIndex === this.queueLength - 1 &&
+          this.queueLength > 1
+        ) {
           const firstSong = this.queue.find((item) => item !== undefined);
           if (firstSong) {
             store.dispatch("updateSong", {
@@ -901,7 +901,7 @@ export default Vue.extend({
               mediaUrl: firstSong.media.transcodings[1].url,
             });
           }
-        } else {
+        } else if (this.queueLength > 1) {
           this.next();
         }
       } else {
@@ -1104,7 +1104,6 @@ export default Vue.extend({
                 position: this.audio.currentTime,
                 duration: this.audio.duration,
               });
-
               MediaSession.setMetadata({
                 title: this.currentTitle,
                 artist: this.currentArtist,
@@ -1116,7 +1115,7 @@ export default Vue.extend({
                   },
                 ],
               });
-            }, 500);
+            }, 1000);
           });
         }
       },
