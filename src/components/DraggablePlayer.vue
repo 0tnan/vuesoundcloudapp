@@ -317,6 +317,18 @@ const TOTAL_OPACITY = 100;
 const INITIAL_DOTSTYLE = "translateX(0) translateY(-50%)";
 const DOT_WIDTH = 20;
 
+interface MediaSessionMetaData {
+  title: string;
+  artist: string;
+  artwork: ArtworkItem[];
+}
+
+interface ArtworkItem {
+  src: string;
+  type: string;
+  sizes: string;
+}
+
 export default Vue.extend({
   data() {
     return {
@@ -352,6 +364,11 @@ export default Vue.extend({
       loopAll: false,
       shuffleActive: false,
       shuffleArray: [] as number[],
+      mediaSessionMetadata: {
+        title: "",
+        artist: "",
+        artwork: [],
+      } as MediaSessionMetaData,
       updateHandler: (() => {
         /* initial handler */
       }) as (ev: Event) => void,
@@ -1032,7 +1049,25 @@ export default Vue.extend({
         }
       });
     },
-
+    setMediaSessionMetaData(
+      title: string,
+      artist: string,
+      src: string,
+      type: string,
+      sizes: string
+    ) {
+      this.mediaSessionMetadata.title = title;
+      this.mediaSessionMetadata.artist = artist;
+      const artworkItem = {
+        src: src,
+        type: type,
+        sizes: sizes,
+      };
+      this.mediaSessionMetadata.artwork[0] = artworkItem;
+    },
+    updateMediaSessionArtwork(src: string) {
+      this.mediaSessionMetadata.artwork[0].src = src;
+    },
     handleVisibility() {
       if (!document.hidden && this.audio) {
         this.updateOnExternalControl();
@@ -1084,38 +1119,24 @@ export default Vue.extend({
             this.currentTime = 0;
             this.disableWhileFetching = false;
           });
+          this.setMediaSessionMetaData(
+            this.currentTitle,
+            this.currentArtist,
+            this.currentMediaArtwork
+              ? this.currentMediaArtwork
+              : this.currentAvatarArtwork,
+            "image/jpeg",
+            "500x500"
+          );
           MediaSession.setMetadata({
-            title: this.currentTitle,
-            artist: this.currentArtist,
-            artwork: [
-              {
-                src: this.currentMediaArtwork
-                  ? this.currentMediaArtwork
-                  : this.currentAvatarArtwork,
-                type: "image/png",
-                sizes: "100x100",
-              },
-            ],
+            ...this.mediaSessionMetadata,
           });
           this.whenAudioReady().then(() => {
             this.resetDotAnimation();
-            setTimeout(() => {
-              MediaSession.setPositionState({
-                position: this.audio.currentTime,
-                duration: this.audio.duration,
-              });
-              MediaSession.setMetadata({
-                title: this.currentTitle,
-                artist: this.currentArtist,
-                artwork: [
-                  {
-                    src: this.getCurrentFullScaleImage,
-                    type: "image/png",
-                    sizes: "500x500",
-                  },
-                ],
-              });
-            }, 1000);
+            MediaSession.setPositionState({
+              position: this.audio.currentTime,
+              duration: this.audio.duration,
+            });
           });
         }
       },
@@ -1126,6 +1147,16 @@ export default Vue.extend({
         if (newVal !== undefined && newVal === null) {
           this.$emit("getNextFavorites", true);
         }
+      },
+      deep: true,
+      immediate: true,
+    },
+    mediaSessionMetadata: {
+      handler() {
+        this.updateMediaSessionArtwork(this.getCurrentFullScaleImage);
+        MediaSession.setMetadata({
+          ...this.mediaSessionMetadata,
+        });
       },
       deep: true,
       immediate: true,
