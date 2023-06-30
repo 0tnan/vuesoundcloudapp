@@ -150,20 +150,6 @@
                   class="DraggablePlayer-contentSliderCurrentArtwork--blurred"
                 />
               </div>
-              <div class="DraggablePlayer-contentSliderCurrentInfos">
-                <p
-                  v-if="currentTitle"
-                  class="DraggablePlayer-contentSliderCurrentTitle"
-                >
-                  {{ currentTitle }}
-                </p>
-                <p
-                  v-if="currentArtist"
-                  class="DraggablePlayer-contentSliderCurrentArtist"
-                >
-                  {{ currentArtist }}
-                </p>
-              </div>
             </div>
             <div class="DraggablePlayer-contentSliderSelectionNext">
               <div class="DraggablePlayer-contentSliderNextImageContainer">
@@ -177,6 +163,30 @@
             </div>
           </div>
         </div>
+      </div>
+      <div class="DraggablePlayer-contentSliderCurrentInfos">
+        <p
+          v-if="currentTitle"
+          id="title"
+          class="DraggablePlayer-contentSliderCurrentTitle"
+          :class="{
+            'DraggablePlayer-contentSliderCurrentTitle--scrollThrough':
+              scrollThroughTitle,
+          }"
+        >
+          {{ currentTitle }}
+        </p>
+        <p
+          v-if="currentArtist"
+          id="artist"
+          class="DraggablePlayer-contentSliderCurrentArtist"
+          :class="{
+            'DraggablePlayer-contentSliderCurrentArtist--scrollThrough':
+              scrollThroughArtist,
+          }"
+        >
+          {{ currentArtist }}
+        </p>
       </div>
       <div class="DraggablePlayer-contentAdditionalControls">
         <button
@@ -369,6 +379,11 @@ export default Vue.extend({
         artist: "",
         artwork: [],
       } as MediaSessionMetaData,
+      title: {} as HTMLElement | null,
+      artist: {} as HTMLElement | null,
+      draggableWidth: 0,
+      scrollThroughTitle: false,
+      scrollThroughArtist: false,
       updateHandler: (() => {
         /* initial handler */
       }) as (ev: Event) => void,
@@ -406,6 +421,7 @@ export default Vue.extend({
       this.audio = new Audio("");
       this.maxHeight = player.offsetHeight;
       this.topBound = this.viewportHeight - this.maxHeight;
+      this.draggableWidth = draggable.offsetWidth;
     }
 
     this.updateHandler = this.updateTime;
@@ -1094,8 +1110,23 @@ export default Vue.extend({
   },
   watch: {
     getCurrentMediaUrl: {
-      handler(newVal) {
+      async handler(newVal) {
         if (this.audio) {
+          await this.$nextTick();
+          this.title = document.getElementById("title");
+          this.artist = document.getElementById("artist");
+          if (this.title && this.title.scrollWidth > this.draggableWidth) {
+            this.scrollThroughTitle = true;
+          } else {
+            this.scrollThroughTitle = false;
+          }
+          if (this.artist && this.artist.scrollWidth > this.draggableWidth) {
+            this.scrollThroughArtist = true;
+          } else {
+            this.scrollThroughArtist = false;
+          }
+          console.log(this.title?.scrollWidth);
+          console.log(this.artist?.scrollWidth);
           this.resetDotPosition();
           this.disableWhileFetching = true;
           this.audio.removeEventListener("timeupdate", this.updateHandler);
@@ -1353,7 +1384,6 @@ export default Vue.extend({
     }
 
     &Slider {
-      height: 37.5rem;
       padding: 0 2rem;
 
       &Selection {
@@ -1406,6 +1436,7 @@ export default Vue.extend({
         flex-direction: column;
         align-items: center;
         height: 100%;
+        position: relative;
 
         &Empty {
           display: flex;
@@ -1440,10 +1471,11 @@ export default Vue.extend({
         }
 
         &Infos {
-          margin-top: 4.5rem;
+          margin-top: 2.5rem;
           text-align: center;
           line-height: 2.2rem;
-          max-width: 30rem;
+          white-space: nowrap;
+          width: calc(100vw - 3rem);
         }
 
         &Title {
@@ -1455,6 +1487,13 @@ export default Vue.extend({
         &Artist {
           font-size: $l;
           font-weight: 300;
+        }
+
+        &Title,
+        &Artist {
+          &--scrollThrough {
+            animation: scrollThrough 15s linear infinite;
+          }
         }
       }
     }

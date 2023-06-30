@@ -1,0 +1,20 @@
+@keyframes scrollThrough {
+  0% {
+    opacity: 0;
+    transform: translateX(50%);
+  }
+
+  5% {
+    opacity: 100%;
+    transform: translateX(50%);
+  }
+
+  98% {
+    opacity: 100%;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-150%);
+  }
+}
