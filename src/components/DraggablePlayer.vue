@@ -1125,18 +1125,19 @@ export default Vue.extend({
             this.currentMediaArtwork
               ? this.currentMediaArtwork
               : this.currentAvatarArtwork,
-            "image/jpeg",
+            "image/png",
             "500x500"
           );
-          MediaSession.setMetadata({
-            ...this.mediaSessionMetadata,
-          });
           this.whenAudioReady().then(() => {
             this.resetDotAnimation();
             MediaSession.setPositionState({
               position: this.audio.currentTime,
               duration: this.audio.duration,
             });
+            MediaSession.setMetadata({
+              ...this.mediaSessionMetadata,
+            });
+            this.updateMediaSessionArtwork(this.getCurrentFullScaleImage);
           });
         }
       },
@@ -1147,16 +1148,6 @@ export default Vue.extend({
         if (newVal !== undefined && newVal === null) {
           this.$emit("getNextFavorites", true);
         }
-      },
-      deep: true,
-      immediate: true,
-    },
-    mediaSessionMetadata: {
-      handler() {
-        this.updateMediaSessionArtwork(this.getCurrentFullScaleImage);
-        MediaSession.setMetadata({
-          ...this.mediaSessionMetadata,
-        });
       },
       deep: true,
       immediate: true,
