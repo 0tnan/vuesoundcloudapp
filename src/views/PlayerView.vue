@@ -235,7 +235,7 @@ export default Vue.extend({
       return this.getUser.username;
     },
     avatarUrl(): string {
-      return this.getUser.avatar_url;
+      return this.getUser.avatar_url.replace("-large", "-t500x500");
     },
     filteredTrackList(): Track[] {
       const lowercaseQuery = this.searchQuery.toLocaleLowerCase();
