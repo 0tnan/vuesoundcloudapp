@@ -14,9 +14,8 @@
       ></SettingsComponent>
     </transition>
     <div class="Player-topContainer">
-      <div class="Player-text">
-        <p class="Player-fetching">Fetching from</p>
-        <p class="Player-username">{{ username }}</p>
+      <div class="Player-avatar">
+        <img loading="lazy" :src="avatarUrl" class="Player-avatarImg" />
       </div>
       <button @click="toggleSettings" class="Player-settingsIcon">
         <img src="@/assets/icons/settings.svg" />
@@ -437,9 +436,12 @@ export default Vue.extend({
     padding: 1.25rem;
   }
 
-  &-text {
-    display: flex;
-    flex-direction: column;
+  &-avatar {
+    &Img {
+      border-radius: 50%;
+      height: 7.5rem;
+      width: 7.5rem;
+    }
   }
 
   &-fetching,
