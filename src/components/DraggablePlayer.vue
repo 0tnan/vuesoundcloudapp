@@ -1552,6 +1552,8 @@ export default Vue.extend({
     }
 
     &ProgressBar {
+      display: flex;
+      flex-direction: column;
       width: 100%;
       padding: 0 2rem;
       margin-bottom: 1.5rem;
@@ -1569,11 +1571,6 @@ export default Vue.extend({
       font-weight: 300;
     }
 
-    &ProgressBar {
-      display: flex;
-      flex-direction: column;
-    }
-
     &Bar {
       height: 0.5rem;
       width: 100%;
@@ -1585,7 +1582,7 @@ export default Vue.extend({
       &Progress {
         background: $black;
         height: 0.5rem;
-        width: 0;
+        width: 2rem;
         border-radius: 5rem;
         transform: translate3d(0, 0, 0);
       }
