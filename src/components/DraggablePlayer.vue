@@ -1113,11 +1113,19 @@ export default Vue.extend({
         transform: `translateX(${newPosition}px) translateY(-50%)`,
         transition: "none",
       };
+      this.progressStyle = {
+        width: `${newPosition + DOT_WIDTH}px`,
+        transition: "none",
+      };
       if (!this.paused) {
         setTimeout(() => {
           this.dotStyle = {
             transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
             transition: `transform ${remainingDuration}ms linear, background 0s`,
+          };
+          this.progressStyle = {
+            width: `${this.barWidth}px`,
+            transition: `all ${remainingDuration}ms linear, background 0s`,
           };
         }, 500);
       }
