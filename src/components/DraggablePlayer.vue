@@ -240,6 +240,11 @@
             @touchmove="onSeek"
             @touchend="endSeek"
           ></div>
+          <div
+            id="progress-bar"
+            class="DraggablePlayer-contentBarProgress"
+            :style="progressStyle"
+          ></div>
         </div>
       </div>
       <div class="DraggablePlayer-contentControls">
@@ -353,6 +358,7 @@ export default Vue.extend({
       miniPlayerStyle: {} as StyleValue,
       buttonStyle: {} as StyleValue,
       dotStyle: {} as StyleValue,
+      progressStyle: {} as StyleValue,
       barWidth: 0,
       dotMaxBound: 0,
       initialPlayerPosition: 0,
@@ -715,6 +721,10 @@ export default Vue.extend({
         transform: `translateX(${this.currentDotPosition.x}px) translateY(-50%)`,
         transition: "none",
       };
+      this.progressStyle = {
+        width: `${this.currentDotPosition.x + DOT_WIDTH}px`,
+        transition: "none",
+      };
     },
     previous() {
       if (this.previousTrack) {
@@ -856,33 +866,31 @@ export default Vue.extend({
       this.paused = false;
       const remainingDuration =
         this.currentSongDuration - (await this.updateTime());
-      const dotPosition = this.getDotPosition();
       this.currentSongEnded = false;
 
-      if (dotPosition === 0 && !this.currentSongEnded) {
-        this.dotStyle = {
-          transform: `translateX(${dotPosition}px) translateY(-50%)`,
-          transition: "none",
-        };
-        setTimeout(() => {
-          this.dotStyle = {
-            transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
-            transition: `transform ${this.currentSongDuration}ms linear, background 0s`,
-          };
-        }, 500);
+      if (this.currentDotPosition.x === 0 && !this.currentSongEnded) {
+        this.resetDotAnimation();
       } else if (
-        dotPosition < this.dotMaxBound &&
-        dotPosition > 0 &&
+        this.currentDotPosition.x < this.dotMaxBound &&
+        this.currentDotPosition.x > 0 &&
         !this.currentSongEnded
       ) {
         this.dotStyle = {
-          transform: `translateX(${dotPosition}px) translateY(-50%)`,
+          transform: `translateX(${this.currentDotPosition.x}px) translateY(-50%)`,
+          transition: "none",
+        };
+        this.progressStyle = {
+          width: `${this.currentDotPosition.x + DOT_WIDTH}px`,
           transition: "none",
         };
         setTimeout(() => {
           this.dotStyle = {
             transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
             transition: `transform ${remainingDuration}ms linear, background 0s`,
+          };
+          this.progressStyle = {
+            width: `${this.barWidth}px`,
+            transition: `width ${remainingDuration}ms linear, background 0s`,
           };
         }, 500);
       }
@@ -900,10 +908,16 @@ export default Vue.extend({
       });
 
       this.paused = true;
-      const dotPosition = this.getDotPosition();
-      if (dotPosition > 0 && dotPosition < this.dotMaxBound) {
+      if (
+        this.currentDotPosition.x > 0 &&
+        this.currentDotPosition.x < this.dotMaxBound
+      ) {
         this.dotStyle = {
-          transform: `translateX(${dotPosition}px) translateY(-50%)`,
+          transform: `translateX(${this.currentDotPosition.x}px) translateY(-50%)`,
+          transition: "none",
+        };
+        this.progressStyle = {
+          width: `${this.currentDotPosition.x + DOT_WIDTH}px`,
           transition: "none",
         };
       }
@@ -993,10 +1007,20 @@ export default Vue.extend({
         transition: "none",
       };
     },
+    resetProgressBar() {
+      this.progressStyle = {
+        width: 0,
+        transition: "none",
+      };
+    },
     startAnimation() {
       this.dotStyle = {
         transform: `translateX(${this.dotMaxBound}px) translateY(-50%)`,
         transition: `transform ${this.currentSongDuration}ms linear, background 0s`,
+      };
+      this.progressStyle = {
+        width: `${this.barWidth}px`,
+        transition: `all ${this.currentSongDuration}ms linear, background 0s`,
       };
     },
     resetDotAnimation() {
@@ -1117,6 +1141,7 @@ export default Vue.extend({
             this.scrollThroughArtist = false;
           }
           this.resetDotPosition();
+          this.resetProgressBar();
           this.disableWhileFetching = true;
           this.audio.removeEventListener("timeupdate", this.updateHandler);
           this.audio.removeEventListener("play", this.playHandler);
@@ -1141,16 +1166,16 @@ export default Vue.extend({
           });
           const artworkItems = [
             {
+              src: this.getCurrentFullScaleImage,
+              type: "image/jpg",
+              sizes: "500x500",
+            },
+            {
               src: this.currentMediaArtwork
                 ? this.currentMediaArtwork
                 : this.currentAvatarArtwork,
               type: "image/jpg",
-              sizes: "96x96",
-            },
-            {
-              src: this.getCurrentFullScaleImage,
-              type: "image/jpg",
-              sizes: "512x512",
+              sizes: "100x100",
             },
           ] as ArtworkItem[];
           this.setMediaSessionMetaData(
@@ -1158,13 +1183,14 @@ export default Vue.extend({
             this.currentArtist,
             artworkItems
           );
-          this.whenAudioReady().then(async () => {
+          this.whenAudioReady().then(() => {
             this.resetDotAnimation();
-            await MediaSession.setPositionState({
+            this.resetProgressBar();
+            MediaSession.setPositionState({
               position: this.audio.currentTime,
               duration: this.audio.duration,
             });
-            await MediaSession.setMetadata({
+            MediaSession.setMetadata({
               ...this.mediaSessionMetadata,
             });
           });
@@ -1239,7 +1265,14 @@ export default Vue.extend({
         color: $white;
       }
 
-      &Bar,
+      &Bar {
+        background: #{$white}80;
+
+        &Progress {
+          background: $white;
+        }
+      }
+
       &Dot {
         background: $white;
       }
@@ -1456,7 +1489,7 @@ export default Vue.extend({
             left: 0;
             z-index: -1;
             filter: blur(5rem);
-            transform: scale(1.25) translateY(1rem) translate3d(0, 0, 0);
+            transform: scale(1.05) translateY(1rem) translate3d(0, 0, 0);
             opacity: 0.7;
           }
         }
@@ -1522,10 +1555,18 @@ export default Vue.extend({
     &Bar {
       height: 0.5rem;
       width: 100%;
-      background: $black;
+      background: #{$black}80;
       border-radius: 5rem;
       margin-top: 1.5rem;
       position: relative;
+
+      &Progress {
+        background: $black;
+        height: 0.5rem;
+        width: 0;
+        border-radius: 5rem;
+        transform: translate3d(0, 0, 0);
+      }
     }
 
     &Dot {
@@ -1544,7 +1585,8 @@ export default Vue.extend({
 
       &Play,
       &Previous,
-      &Next {
+      &Next,
+      &Pause {
         min-width: 8rem;
         min-height: 8rem;
       }
