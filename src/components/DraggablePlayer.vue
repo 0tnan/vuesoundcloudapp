@@ -1027,6 +1027,7 @@ export default Vue.extend({
     },
     resetDotAnimation() {
       this.resetDotPosition();
+      this.resetProgressBar();
       setTimeout(() => {
         this.startAnimation();
       }, 600);
