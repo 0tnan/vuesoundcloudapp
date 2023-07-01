@@ -490,6 +490,16 @@ export default Vue.extend({
       &--on {
         animation: spin 1.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
       }
+
+      &Icon {
+        width: 3rem;
+        height: 3rem;
+      }
+    }
+
+    &Icon {
+      width: 3rem;
+      height: 3rem;
     }
 
     &Remove {
@@ -497,13 +507,13 @@ export default Vue.extend({
       top: 50%;
       right: 0;
       transform: translateY(-50%);
-      margin-right: 6.5rem;
+      margin-right: 6rem;
       padding: 1rem;
       z-index: 1;
 
       &Icon {
-        height: 2rem;
-        width: 2rem;
+        height: 3rem;
+        width: 3rem;
       }
     }
   }
@@ -530,6 +540,10 @@ export default Vue.extend({
 
     &List {
       padding-right: 1.25rem;
+    }
+
+    &Grid {
+      padding-right: 1.75rem;
     }
   }
 
