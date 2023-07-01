@@ -752,6 +752,7 @@ export default Vue.extend({
     },
     replayCurrentSong(withPlay: boolean) {
       this.resetDotPosition();
+      this.resetProgressBar();
       this.resetDotAnimation();
       this.audio.currentTime = 0;
       if (withPlay) {
@@ -931,6 +932,7 @@ export default Vue.extend({
       this.currentDotPosition = { x: 0, y: 0 };
       this.seekOffset = { x: 0, y: 0 };
       this.resetDotPosition();
+      this.resetProgressBar();
       if (this.loopOne && !this.loopAll) {
         this.replayCurrentSong(true);
       } else if (this.loopAll && !this.loopOne) {
@@ -1009,7 +1011,7 @@ export default Vue.extend({
     },
     resetProgressBar() {
       this.progressStyle = {
-        width: DOT_WIDTH,
+        width: `${DOT_WIDTH}px`,
         transition: "none",
       };
     },
@@ -1020,7 +1022,7 @@ export default Vue.extend({
       };
       this.progressStyle = {
         width: `${this.barWidth}px`,
-        transition: `all ${this.currentSongDuration}ms linear, background 0s`,
+        transition: `width ${this.currentSongDuration}ms linear, background 0s`,
       };
     },
     resetDotAnimation() {
@@ -1125,7 +1127,7 @@ export default Vue.extend({
           };
           this.progressStyle = {
             width: `${this.barWidth}px`,
-            transition: `all ${remainingDuration}ms linear, background 0s`,
+            transition: `width ${remainingDuration}ms linear, background 0s`,
           };
         }, 500);
       }
@@ -1193,7 +1195,6 @@ export default Vue.extend({
           );
           this.whenAudioReady().then(() => {
             this.resetDotAnimation();
-            this.resetProgressBar();
             MediaSession.setPositionState({
               position: this.audio.currentTime,
               duration: this.audio.duration,
@@ -1590,6 +1591,7 @@ export default Vue.extend({
 
     &Dot {
       position: absolute;
+      z-index: 1;
       top: 50%;
       transform: translateY(-50%);
       height: 2rem;
