@@ -1009,7 +1009,7 @@ export default Vue.extend({
     },
     resetProgressBar() {
       this.progressStyle = {
-        width: 0,
+        width: DOT_WIDTH,
         transition: "none",
       };
     },
