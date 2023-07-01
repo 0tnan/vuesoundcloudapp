@@ -1068,21 +1068,12 @@ export default Vue.extend({
     setMediaSessionMetaData(
       title: string,
       artist: string,
-      src: string,
-      type: string,
-      sizes: string
+      artworkItems: ArtworkItem[]
     ) {
+      this.mediaSessionMetadata.artwork = [];
       this.mediaSessionMetadata.title = title;
       this.mediaSessionMetadata.artist = artist;
-      const artworkItem = {
-        src: src,
-        type: type,
-        sizes: sizes,
-      };
-      this.mediaSessionMetadata.artwork[0] = artworkItem;
-    },
-    updateMediaSessionArtwork(src: string) {
-      this.mediaSessionMetadata.artwork[0].src = src;
+      this.mediaSessionMetadata.artwork.push(...artworkItems);
     },
     handleVisibility() {
       if (!document.hidden && this.audio) {
@@ -1125,8 +1116,6 @@ export default Vue.extend({
           } else {
             this.scrollThroughArtist = false;
           }
-          console.log(this.title?.scrollWidth);
-          console.log(this.artist?.scrollWidth);
           this.resetDotPosition();
           this.disableWhileFetching = true;
           this.audio.removeEventListener("timeupdate", this.updateHandler);
@@ -1150,25 +1139,34 @@ export default Vue.extend({
             this.currentTime = 0;
             this.disableWhileFetching = false;
           });
+          const artworkItems = [
+            {
+              src: this.currentMediaArtwork
+                ? this.currentMediaArtwork
+                : this.currentAvatarArtwork,
+              type: "image/jpg",
+              sizes: "96x96",
+            },
+            {
+              src: this.getCurrentFullScaleImage,
+              type: "image/jpg",
+              sizes: "512x512",
+            },
+          ] as ArtworkItem[];
           this.setMediaSessionMetaData(
             this.currentTitle,
             this.currentArtist,
-            this.currentMediaArtwork
-              ? this.currentMediaArtwork
-              : this.currentAvatarArtwork,
-            "image/png",
-            "500x500"
+            artworkItems
           );
-          this.whenAudioReady().then(() => {
+          this.whenAudioReady().then(async () => {
             this.resetDotAnimation();
-            MediaSession.setPositionState({
+            await MediaSession.setPositionState({
               position: this.audio.currentTime,
               duration: this.audio.duration,
             });
-            MediaSession.setMetadata({
+            await MediaSession.setMetadata({
               ...this.mediaSessionMetadata,
             });
-            this.updateMediaSessionArtwork(this.getCurrentFullScaleImage);
           });
         }
       },
