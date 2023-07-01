@@ -156,6 +156,11 @@ export default Vue.extend({
         font-size: $xxl;
         text-align: center;
       }
+
+      &Icon {
+        height: 3rem;
+        width: 3rem;
+      }
     }
   }
 
