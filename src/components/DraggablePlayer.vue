@@ -322,6 +322,7 @@ import { mapGetters } from "vuex";
 import { Track } from "@/interfaces/track";
 import { StyleValue } from "vue/types/jsx";
 import { MediaSession } from "@jofr/capacitor-media-session";
+import { StateInitiator } from "@/enums/state-initiator";
 
 const INITIAL_POSITION = "12%";
 const TRANSITION = "all 0.5s ease-in";
@@ -390,6 +391,7 @@ export default Vue.extend({
       draggableWidth: 0,
       scrollThroughTitle: false,
       scrollThroughArtist: false,
+      queue: [] as Track[],
       updateHandler: (() => {
         /* initial handler */
       }) as (ev: Event) => void,
@@ -409,6 +411,10 @@ export default Vue.extend({
   },
   props: {
     filteredList: {
+      type: Array as PropType<Track[]>,
+      default: () => [],
+    },
+    oldFilteredList: {
       type: Array as PropType<Track[]>,
       default: () => [],
     },
@@ -451,6 +457,7 @@ export default Vue.extend({
       "getFavorites",
       "getNextUrl",
       "getDarkMode",
+      "getInitiator",
     ]),
     hasCurrentSong(): boolean {
       return this.getCurrentMediaUrl ? true : false;
@@ -487,9 +494,6 @@ export default Vue.extend({
     },
     currentTitle(): string {
       return this.getCurrentSong ? this.getCurrentSong.title : null;
-    },
-    queue(): Track[] {
-      return this.filteredList ? this.filteredList : [];
     },
     currentSongIndex(): number | null {
       if (this.queue) {
@@ -1138,6 +1142,11 @@ export default Vue.extend({
     getCurrentMediaUrl: {
       async handler(newVal) {
         if (this.audio) {
+          if (this.getInitiator === StateInitiator.unfiltered) {
+            this.queue = this.filteredList;
+          } else {
+            this.queue = this.oldFilteredList;
+          }
           await this.$nextTick();
           this.title = document.getElementById("title");
           this.artist = document.getElementById("artist");
@@ -1213,6 +1222,13 @@ export default Vue.extend({
         if (newVal !== undefined && newVal === null) {
           this.$emit("getNextFavorites", true);
         }
+      },
+      deep: true,
+      immediate: true,
+    },
+    oldFilteredList: {
+      handler(newVal) {
+        this.queue = newVal;
       },
       deep: true,
       immediate: true,

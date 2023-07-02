@@ -9,12 +9,17 @@ export default Vue.extend({
       type: Object as () => Track,
       required: true,
     },
+    initiator: {
+      type: String,
+      default: "",
+    },
   },
   methods: {
     setSong(track: Track) {
       store.dispatch("updateSong", {
         track: track,
         mediaUrl: this.mediaUrl,
+        initiator: this.initiator,
       });
     },
     getFullScaleImage(url: string, avatar_url: string): string | undefined {

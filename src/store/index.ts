@@ -21,11 +21,13 @@ interface State {
   currentSong: Track;
   currentMediaUrl: string;
   isDarkMode: boolean;
+  initiatedBy: string;
 }
 
 interface Payload {
   track: Track;
   mediaUrl: string;
+  initiator: string;
 }
 
 function handleDarkMode(mode: boolean) {
@@ -47,6 +49,7 @@ export default new Vuex.Store({
       currentSong: {} as Track,
       currentMediaUrl: "",
       isDarkMode: false,
+      initiatedBy: "",
     };
   },
   getters: {
@@ -74,6 +77,9 @@ export default new Vuex.Store({
     getDarkMode(state: State) {
       return state.isDarkMode;
     },
+    getInitiator(state: State) {
+      return state.initiatedBy;
+    },
   },
   mutations: {
     setApiKey(state: State, apiKey: string) {
@@ -100,6 +106,11 @@ export default new Vuex.Store({
     setCurrentSong(state: State, track: Track) {
       state.currentSong = track;
     },
+    setInitiator(state: State, initiator: string) {
+      if (initiator) {
+        state.initiatedBy = initiator;
+      }
+    },
     toggleDarkMode(state: State) {
       state.isDarkMode = !state.isDarkMode;
       handleDarkMode(state.isDarkMode);
@@ -122,6 +133,7 @@ export default new Vuex.Store({
       getMediaFinalUrl(getters.getApiKey, payload.mediaUrl).then((response) => {
         commit("setCurrentMediaUrl", response);
         commit("setCurrentSong", payload.track);
+        commit("setInitiator", payload.initiator);
       });
     },
     async toggleDarkMode({ commit, getters }) {
