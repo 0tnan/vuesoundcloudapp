@@ -4,6 +4,7 @@
       @disallowScroll="disableScroll"
       @getNextFavorites="updateFavorites"
       :filteredList="filteredTrackList"
+      :oldFilteredList="oldFilteredTracklist"
     ></DraggablePlayer>
     <transition name="slide" appear>
       <SettingsComponent
@@ -95,6 +96,7 @@
             v-for="track in filteredTrackList"
             :key="track.id"
             :track="track"
+            :initiator="stateInitiator.unfiltered"
           ></GridTile>
           <div v-if="!scrollEnd" class="Player-loadingContainer">
             <img
@@ -116,6 +118,7 @@
             v-for="track in filteredTrackList"
             :key="track.id"
             :track="track"
+            :initiator="stateInitiator.unfiltered"
           ></ListTile>
           <div v-if="!scrollEnd" class="Player-loadingContainer">
             <img
@@ -137,9 +140,10 @@
           class="Player-musicGrid"
         >
           <GridTile
-            v-for="track in filteredTrackList"
+            v-for="track in oldFilteredTracklist"
             :key="track.id"
             :track="track"
+            :initiator="stateInitiator.filtered"
           ></GridTile>
           <div v-if="!scrollEnd" class="Player-loadingContainer">
             <img
@@ -158,9 +162,10 @@
           appear
         >
           <ListTile
-            v-for="track in filteredTrackList"
+            v-for="track in oldFilteredTracklist"
             :key="track.id"
             :track="track"
+            :initiator="stateInitiator.filtered"
           ></ListTile>
           <div v-if="!scrollEnd" class="Player-loadingContainer">
             <img
@@ -187,6 +192,7 @@ import SettingsComponent from "@/components/SettingsComponent.vue";
 import { getFavorites, getNextFavorites } from "../utils/soundcloud-api";
 import store from "@/store";
 import { debounce } from "lodash";
+import { StateInitiator } from "@/enums/state-initiator";
 
 const MAX_FILTER_ITEM = 10; // Maximum number of items that will be displayed to avoid too much api calls
 
@@ -202,11 +208,13 @@ export default Vue.extend({
       gridEnabled: true,
       tracklist: [] as Track[],
       scrollEnd: false,
+      oldSearchQuery: "",
       searchQuery: "",
       isRefreshing: false,
       refreshDisabled: false,
       showSettings: false,
       filterTracker: MAX_FILTER_ITEM,
+      stateInitiator: StateInitiator,
     };
   },
   created() {
@@ -251,8 +259,25 @@ export default Vue.extend({
 
       return uniqueFiltered;
     },
+    oldFilteredTracklist(): Track[] {
+      const lowercaseQuery = this.oldSearchQuery.toLocaleLowerCase();
+      const filteredList = this.tracklist.filter(
+        (item) =>
+          item.title.toLocaleLowerCase().includes(lowercaseQuery) ||
+          item.user.username.toLocaleLowerCase().includes(lowercaseQuery)
+      );
+
+      const uniqueFiltered = [
+        ...new Map(filteredList.map((item) => [item.id, item])).values(),
+      ];
+
+      return uniqueFiltered;
+    },
     filteredTrackListLength(): number {
       return this.filteredTrackList.length;
+    },
+    oldFilteredTracklistLength(): number {
+      return this.oldFilteredTracklist.length;
     },
   },
   methods: {
@@ -322,8 +347,9 @@ export default Vue.extend({
       this.searchQuery = "";
     },
     searchTracks() {
-      if (this.filteredTrackListLength >= this.filterTracker) {
-        this.filterTracker = this.filteredTrackListLength;
+      this.oldSearchQuery = this.searchQuery;
+      if (this.oldFilteredTracklistLength >= this.filterTracker) {
+        this.filterTracker = this.oldFilteredTracklistLength;
       } else {
         this.filterTracker = MAX_FILTER_ITEM;
       }
@@ -342,9 +368,9 @@ export default Vue.extend({
             });
             store.commit("addToFavorites", results.collection);
             store.commit("setNextUrl", results.next_href);
-            if (this.filteredTrackListLength < this.filterTracker) {
+            if (this.oldFilteredTracklistLength < this.filterTracker) {
               this.recursiveGetNextFavorites();
-            } else if (this.filteredTrackList.length === this.filterTracker) {
+            } else if (this.oldFilteredTracklistLength === this.filterTracker) {
               this.filterTracker += this.filterTracker;
               return;
             }
