@@ -8,4 +8,11 @@ module.exports = defineConfig({
       },
     },
   },
+  configureWebpack: {
+    devServer: {
+      client: {
+        overlay: false,
+      },
+    },
+  },
 });
