@@ -189,10 +189,16 @@ import GridTile from "@/components/GridTile.vue";
 import ListTile from "@/components/ListTile.vue";
 import DraggablePlayer from "@/components/DraggablePlayer.vue";
 import SettingsComponent from "@/components/SettingsComponent.vue";
-import { getFavorites, getNextFavorites } from "../utils/soundcloud-api";
+import {
+  getFavorites,
+  getNextFavorites,
+  getPlaylistWithTracks,
+  getMultipleTracks,
+} from "../utils/soundcloud-api";
 import store from "@/store";
 import { debounce } from "lodash";
 import { StateInitiator } from "@/enums/state-initiator";
+import { FavoriteItem } from "@/interfaces/favorite-item";
 
 const MAX_FILTER_ITEM = 10; // Maximum number of items that will be displayed to avoid too much api calls
 
@@ -291,10 +297,8 @@ export default Vue.extend({
       if (this.getNextUrl !== null) {
         getNextFavorites(this.getApiKey, this.getNextUrl).then(
           (results: Favorites) => {
-            results.collection.forEach((item) => {
-              if (item.track && !this.tracklist.includes(item.track)) {
-                this.tracklist.push(item.track);
-              }
+            results.collection.forEach((favoriteItem: FavoriteItem) => {
+              this.handleFavoriteItem(favoriteItem);
             });
             store.commit("addToFavorites", results.collection);
             store.commit("setNextUrl", results.next_href);
@@ -361,10 +365,8 @@ export default Vue.extend({
       if (this.getNextUrl) {
         getNextFavorites(this.getApiKey, this.getNextUrl).then(
           (results: Favorites) => {
-            results.collection.forEach((item) => {
-              if (item.track && !this.tracklist.includes(item.track)) {
-                this.tracklist.push(item.track);
-              }
+            results.collection.forEach((favoriteItem: FavoriteItem) => {
+              this.handleFavoriteItem(favoriteItem);
             });
             store.commit("addToFavorites", results.collection);
             store.commit("setNextUrl", results.next_href);
@@ -396,11 +398,41 @@ export default Vue.extend({
     },
     populateFavorites() {
       const favorites = this.getFavorites as Favorites;
-      favorites.collection.forEach((item) => {
-        if (item.track && !this.tracklist.includes(item.track)) {
-          this.tracklist.push(item.track);
-        }
+      favorites.collection.forEach((favoriteItem: FavoriteItem) => {
+        this.handleFavoriteItem(favoriteItem);
       });
+    },
+    handleFavoriteItem(favoriteItem: FavoriteItem) {
+      if (favoriteItem.track && !this.tracklist.includes(favoriteItem.track)) {
+        this.tracklist.push(favoriteItem.track);
+      } else if (favoriteItem.playlist) {
+        const ids = [] as number[];
+        getPlaylistWithTracks(this.getApiKey, favoriteItem.playlist.id)
+          .then((playlistWithTracks) => {
+            playlistWithTracks.tracks.forEach((track: Track) => {
+              const hasMedia = !!track.media;
+              const hasIdNotMedia = !!track.id && !track.media;
+              if (hasMedia) {
+                this.tracklist.push(track);
+              } else if (hasIdNotMedia) {
+                ids.push(track.id);
+                console.log(ids);
+              }
+            });
+          })
+          .finally(() => {
+            if (ids.length > 0) {
+              console.log("here");
+              getMultipleTracks(this.getApiKey, ids).then((tracks: Track[]) => {
+                tracks.forEach((track: Track) => {
+                  if (track && !this.tracklist.includes(track)) {
+                    this.tracklist.push(track);
+                  }
+                });
+              });
+            }
+          });
+      }
     },
     disableScroll(value: boolean) {
       const queue = document.getElementById("queue");
