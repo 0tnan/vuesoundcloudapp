@@ -1,5 +1,9 @@
 <template>
-  <div id="app" class="App" :class="{ 'App--dark': getDarkMode }">
+  <div
+    id="app"
+    class="App"
+    :class="{ 'App--dark': getDarkMode, 'App--ios': isIos }"
+  >
     <router-view />
   </div>
 </template>
@@ -30,6 +34,7 @@ export default Vue.extend({
     }
 
     if (Capacitor.getPlatform() === "ios") {
+      this.isIos = true;
       if (this.getDarkMode) {
         await StatusBar.setStyle({ style: Style.Dark });
       } else {
@@ -63,6 +68,11 @@ export default Vue.extend({
       }
     });
   },
+  data() {
+    return {
+      isIos: false,
+    };
+  },
   computed: {
     ...mapGetters(["getDarkMode"]),
   },
@@ -74,11 +84,15 @@ export default Vue.extend({
 
 .App {
   height: 100%;
-  padding: 5rem 0;
+  padding: 0;
   transition: all 0.5s;
 
   &--dark {
     background: $black;
+  }
+
+  &--ios {
+    padding: 5rem 0;
   }
 }
 </style>
