@@ -1,8 +1,11 @@
 import Vue from "vue";
-import getProfile from "../utils/get-profile";
-import { getFavorites, getProfileInfos } from "../utils/soundcloud-api";
+import getProfile from "../utils/soundcloud/get-profile";
+import {
+  getFavorites,
+  getProfileInfos,
+} from "../utils/soundcloud/soundcloud-api";
 import store from "@/store";
-import { urlRegex } from "../utils/regex";
+import { urlRegex } from "../utils/soundcloud/regex";
 import { mapGetters } from "vuex";
 import { LocalStorage } from "../enums/local-storage";
 
@@ -21,7 +24,13 @@ export default Vue.extend({
     };
   },
   computed: {
-    ...mapGetters(["getApiKey", "getProfileId", "getFavorites", "getUser"]),
+    ...mapGetters([
+      "getSoundCloudApiKey",
+      "getSoundCloudProfileId",
+      "getSoundCloudFavorites",
+      "getSoundCloudUser",
+      "getDarkMode",
+    ]),
   },
   methods: {
     getProfile() {
@@ -29,7 +38,7 @@ export default Vue.extend({
         this.hasError = false;
         getProfile(this.url)
           .then((soundcloudId) => {
-            store.commit("setProfileId", soundcloudId);
+            store.commit("setSoundCloudProfileId", soundcloudId);
             this.fetchDatas();
           })
           .catch(() => {
@@ -43,21 +52,24 @@ export default Vue.extend({
     fetchDatas() {
       this.isFetching = true;
       Promise.all([
-        getFavorites(this.getApiKey, this.getProfileId),
-        getProfileInfos(this.getApiKey, this.getProfileId),
+        getFavorites(this.getSoundCloudApiKey, this.getSoundCloudProfileId),
+        getProfileInfos(this.getSoundCloudApiKey, this.getSoundCloudProfileId),
       ])
         .then((responses) => {
-          store.commit("setFavorites", responses[0]);
-          store.commit("setUser", responses[1]);
-          store.commit("setNextUrl", this.getFavorites.next_href);
-          const userJSON = JSON.stringify(this.getUser);
-          const profileIdJSON = JSON.stringify(this.getProfileId);
-          localStorage.setItem(LocalStorage.User, userJSON);
-          localStorage.setItem(LocalStorage.ProfileId, profileIdJSON);
+          store.commit("setSoundCloudFavorites", responses[0]);
+          store.commit("setSoundCloudUser", responses[1]);
+          store.commit(
+            "setSoundCloudNextUrl",
+            this.getSoundCloudFavorites.next_href
+          );
+          const userJSON = JSON.stringify(this.getSoundCloudUser);
+          const profileIdJSON = JSON.stringify(this.getSoundCloudProfileId);
+          localStorage.setItem(LocalStorage.SoundCloudUser, userJSON);
+          localStorage.setItem(LocalStorage.SoundCloudProfileId, profileIdJSON);
           this.$emit("populate");
           this.isFetching = false;
           if (this.route) {
-            this.$router.push("/player");
+            this.$router.push("/player-selector");
           }
         })
         .catch(() => {
