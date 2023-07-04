@@ -1,6 +1,6 @@
 import Vue from "vue";
 import store from "@/store";
-import { Track } from "@/interfaces/track";
+import { Track } from "@/interfaces/soundcloud/track";
 import { mapGetters } from "vuex";
 
 export default Vue.extend({
@@ -16,7 +16,7 @@ export default Vue.extend({
   },
   methods: {
     setSong(track: Track) {
-      store.dispatch("updateSong", {
+      store.dispatch("updateSoundCloudSong", {
         track: track,
         mediaUrl: this.mediaUrl,
         initiator: this.initiator,

@@ -1,8 +1,8 @@
-import { FavoriteItem } from "@/interfaces/favorite-item";
-import { Favorites } from "@/interfaces/favorites";
-import { Track } from "@/interfaces/track";
-import { User } from "@/interfaces/user";
-import { getMediaFinalUrl } from "../utils/soundcloud-api";
+import { FavoriteItem } from "@/interfaces/soundcloud/favorite-item";
+import { Favorites } from "@/interfaces/soundcloud/favorites";
+import { Track } from "@/interfaces/soundcloud/track";
+import { User } from "@/interfaces/soundcloud/user";
+import { getMediaFinalUrl } from "../utils/soundcloud/soundcloud-api";
 import Vue from "vue";
 import Vuex from "vuex";
 import { Capacitor } from "@capacitor/core";
@@ -13,6 +13,18 @@ import { DarkMode } from "@/enums/dark-mode";
 Vue.use(Vuex);
 
 interface State {
+  soundCloudState: SoundCloudState;
+  spotifyState: SpotifyState;
+  isDarkMode: boolean;
+}
+
+interface Payload {
+  track: Track;
+  mediaUrl: string;
+  initiator: string;
+}
+
+interface SoundCloudState {
   apiKey: string;
   user: User;
   profileId: string;
@@ -20,14 +32,13 @@ interface State {
   nextUrl: string;
   currentSong: Track;
   currentMediaUrl: string;
-  isDarkMode: boolean;
   initiatedBy: string;
 }
 
-interface Payload {
-  track: Track;
-  mediaUrl: string;
-  initiator: string;
+interface SpotifyState {
+  clientId: string;
+  user: string;
+  apiKey: string;
 }
 
 function handleDarkMode(mode: boolean) {
@@ -41,74 +52,81 @@ function handleDarkMode(mode: boolean) {
 export default new Vuex.Store({
   state() {
     return {
-      apiKey: "",
-      user: {} as User,
-      profileId: "",
-      favorites: {} as Favorites,
-      nextUrl: "",
-      currentSong: {} as Track,
-      currentMediaUrl: "",
-      isDarkMode: false,
-      initiatedBy: "",
+      soundCloudState: {
+        apiKey: "",
+        user: {} as User,
+        profileId: "",
+        favorites: {} as Favorites,
+        nextUrl: "",
+        currentSong: {} as Track,
+        currentMediaUrl: "",
+        initiatedBy: "",
+      } as SoundCloudState,
+      spotifyState: {
+        clientId: "",
+        user: "",
+        apiKey: "",
+      } as SpotifyState,
+      isDarkMode: true,
     };
   },
   getters: {
-    getApiKey(state: State) {
-      return state.apiKey;
+    getSoundCloudApiKey(state: State) {
+      return state.soundCloudState.apiKey;
     },
-    getProfileId(state: State) {
-      return state.profileId;
+    getSoundCloudProfileId(state: State) {
+      return state.soundCloudState.profileId;
     },
-    getFavorites(state: State) {
-      return state.favorites;
+    getSoundCloudFavorites(state: State) {
+      return state.soundCloudState.favorites;
     },
-    getUser(state: State) {
-      return state.user;
+    getSoundCloudUser(state: State) {
+      return state.soundCloudState.user;
     },
-    getNextUrl(state: State) {
-      return state.nextUrl;
+    getSoundCloudNextUrl(state: State) {
+      return state.soundCloudState.nextUrl;
     },
-    getCurrentSong(state: State) {
-      return state.currentSong;
+    getSoundCloudCurrentSong(state: State) {
+      return state.soundCloudState.currentSong;
     },
-    getCurrentMediaUrl(state: State) {
-      return state.currentMediaUrl;
+    getSoundCloudCurrentMediaUrl(state: State) {
+      return state.soundCloudState.currentMediaUrl;
     },
     getDarkMode(state: State) {
       return state.isDarkMode;
     },
-    getInitiator(state: State) {
-      return state.initiatedBy;
+    getSoundCloudInitiator(state: State) {
+      return state.soundCloudState.initiatedBy;
     },
   },
   mutations: {
-    setApiKey(state: State, apiKey: string) {
-      state.apiKey = apiKey;
+    setSoundCloudApiKey(state: State, apiKey: string) {
+      state.soundCloudState.apiKey = apiKey;
     },
-    setProfileId(state: State, id: string) {
-      state.profileId = id;
+    setSoundCloudProfileId(state: State, id: string) {
+      state.soundCloudState.profileId = id;
     },
-    setFavorites(state: State, favorites: Favorites) {
-      state.favorites = favorites;
+    setSoundCloudFavorites(state: State, favorites: Favorites) {
+      state.soundCloudState.favorites = favorites;
     },
-    addToFavorites(state: State, collection: FavoriteItem[]) {
-      state.favorites.collection.push(...collection);
+    addToSoundCloudFavorites(state: State, collection: FavoriteItem[]) {
+      state.soundCloudState.favorites.collection.push(...collection);
     },
-    setUser(state: State, user: User) {
-      state.user = user;
+    setSoundCloudUser(state: State, user: User) {
+      state.soundCloudState.user = user;
     },
-    setNextUrl(state: State, nextUrl: string) {
-      state.nextUrl = nextUrl;
+    setSoundCloudNextUrl(state: State, nextUrl: string) {
+      state.soundCloudState.nextUrl = nextUrl;
     },
-    setCurrentMediaUrl(state: State, url: string) {
-      state.currentMediaUrl = url;
+    setSoundCloudCurrentMediaUrl(state: State, url: string) {
+      state.soundCloudState.currentMediaUrl = url;
     },
-    setCurrentSong(state: State, track: Track) {
-      state.currentSong = track;
+    setSoundCloudCurrentSong(state: State, track: Track) {
+      state.soundCloudState.currentSong = track;
     },
-    setInitiator(state: State, initiator: string) {
+    setSoundCloudInitiator(state: State, initiator: string) {
       if (initiator) {
-        state.initiatedBy = initiator;
+        state.soundCloudState.initiatedBy = initiator;
       }
     },
     toggleDarkMode(state: State) {
@@ -119,22 +137,24 @@ export default new Vuex.Store({
       state.isDarkMode = value;
       handleDarkMode(state.isDarkMode);
     },
-    resetState(state: State) {
-      state.user = {} as User;
-      state.profileId = "";
-      state.favorites = {} as Favorites;
-      state.nextUrl = "";
-      state.currentSong = {} as Track;
-      state.currentMediaUrl = "";
+    resetSoundCloudState(state: State) {
+      state.soundCloudState.user = {} as User;
+      state.soundCloudState.profileId = "";
+      state.soundCloudState.favorites = {} as Favorites;
+      state.soundCloudState.nextUrl = "";
+      state.soundCloudState.currentSong = {} as Track;
+      state.soundCloudState.currentMediaUrl = "";
     },
   },
   actions: {
-    updateSong({ commit, getters }, payload: Payload) {
-      getMediaFinalUrl(getters.getApiKey, payload.mediaUrl).then((response) => {
-        commit("setCurrentMediaUrl", response);
-        commit("setCurrentSong", payload.track);
-        commit("setInitiator", payload.initiator);
-      });
+    updateSoundCloudSong({ commit, getters }, payload: Payload) {
+      getMediaFinalUrl(getters.getSoundCloudApiKey, payload.mediaUrl).then(
+        (response) => {
+          commit("setSoundCloudCurrentMediaUrl", response);
+          commit("setSoundCloudCurrentSong", payload.track);
+          commit("setSoundCloudInitiator", payload.initiator);
+        }
+      );
     },
     async toggleDarkMode({ commit, getters }) {
       if (Capacitor.getPlatform() === "ios") {

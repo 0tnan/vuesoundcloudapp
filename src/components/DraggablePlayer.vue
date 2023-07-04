@@ -319,7 +319,7 @@ import { debounce, isEqual } from "lodash";
 import store from "@/store";
 import Vue, { PropType } from "vue";
 import { mapGetters } from "vuex";
-import { Track } from "@/interfaces/track";
+import { Track } from "@/interfaces/soundcloud/track";
 import { StyleValue } from "vue/types/jsx";
 import { MediaSession } from "@jofr/capacitor-media-session";
 import { StateInitiator } from "@/enums/state-initiator";
@@ -452,22 +452,24 @@ export default Vue.extend({
   },
   computed: {
     ...mapGetters([
-      "getCurrentMediaUrl",
-      "getCurrentSong",
-      "getFavorites",
-      "getNextUrl",
+      "getSoundCloudCurrentMediaUrl",
+      "getSoundCloudCurrentSong",
+      "getSoundCloudFavorites",
+      "getSoundCloudNextUrl",
       "getDarkMode",
-      "getInitiator",
+      "getSoundCloudInitiator",
     ]),
     hasCurrentSong(): boolean {
-      return this.getCurrentMediaUrl ? true : false;
+      return this.getSoundCloudCurrentMediaUrl ? true : false;
     },
     currentMediaArtwork(): string {
-      return this.getCurrentSong ? this.getCurrentSong.artwork_url : null;
+      return this.getSoundCloudCurrentSong
+        ? this.getSoundCloudCurrentSong.artwork_url
+        : null;
     },
     currentAvatarArtwork(): string {
-      return this.getCurrentSong.user
-        ? this.getCurrentSong.user.avatar_url
+      return this.getSoundCloudCurrentSong.user
+        ? this.getSoundCloudCurrentSong.user.avatar_url
         : null;
     },
     getCurrentFullScaleImage(): string {
@@ -488,17 +490,19 @@ export default Vue.extend({
       }
     },
     currentArtist(): string {
-      return this.getCurrentSong.user
-        ? this.getCurrentSong.user.username
+      return this.getSoundCloudCurrentSong.user
+        ? this.getSoundCloudCurrentSong.user.username
         : null;
     },
     currentTitle(): string {
-      return this.getCurrentSong ? this.getCurrentSong.title : null;
+      return this.getSoundCloudCurrentSong
+        ? this.getSoundCloudCurrentSong.title
+        : null;
     },
     currentSongIndex(): number | null {
       if (this.queue) {
         return this.queue.findIndex((item) =>
-          isEqual(item, this.getCurrentSong)
+          isEqual(item, this.getSoundCloudCurrentSong)
         );
       }
       return null;
@@ -734,14 +738,14 @@ export default Vue.extend({
       if (this.previousTrack) {
         if (this.currentTime < 3000) {
           if (!this.shuffleActive) {
-            store.dispatch("updateSong", {
+            store.dispatch("updateSoundCloudSong", {
               track: this.previousTrack,
               mediaUrl: this.previousTrack.media.transcodings[1].url,
             });
           } else {
             const randomTrack = this.getRandomSong();
             if (randomTrack) {
-              store.dispatch("updateSong", {
+              store.dispatch("updateSoundCloudSong", {
                 track: randomTrack,
                 mediaUrl: randomTrack.media.transcodings[1].url,
               });
@@ -769,13 +773,13 @@ export default Vue.extend({
       }
     },
     play() {
-      if (!!this.audio && !!this.getCurrentMediaUrl) {
+      if (!!this.audio && !!this.getSoundCloudCurrentMediaUrl) {
         this.audio.play();
         this.onPlay();
       }
     },
     pause() {
-      if (!!this.audio && !!this.getCurrentMediaUrl) {
+      if (!!this.audio && !!this.getSoundCloudCurrentMediaUrl) {
         this.audio.pause();
         this.onPause();
       }
@@ -784,7 +788,7 @@ export default Vue.extend({
       if (this.loopAll && !this.nextTrack) {
         const firstSong = this.queue.find((item) => item !== undefined);
         if (firstSong) {
-          store.dispatch("updateSong", {
+          store.dispatch("updateSoundCloudSong", {
             track: firstSong,
             mediaUrl: firstSong.media.transcodings[1].url,
           });
@@ -792,7 +796,7 @@ export default Vue.extend({
         return;
       }
       if (this.nextTrack && !this.shuffleActive) {
-        store.dispatch("updateSong", {
+        store.dispatch("updateSoundCloudSong", {
           track: this.nextTrack,
           mediaUrl: this.nextTrack.media.transcodings[1].url,
         });
@@ -801,7 +805,7 @@ export default Vue.extend({
       } else if (this.shuffleActive) {
         const randomTrack = this.getRandomSong();
         if (randomTrack) {
-          store.dispatch("updateSong", {
+          store.dispatch("updateSoundCloudSong", {
             track: randomTrack,
             mediaUrl: randomTrack.media.transcodings[1].url,
           });
@@ -897,7 +901,7 @@ export default Vue.extend({
             width: `${this.barWidth}px`,
             transition: `width ${remainingDuration}ms linear, background 0s`,
           };
-        }, 500);
+        }, 300);
       }
 
       this.isSeeking = false;
@@ -932,7 +936,7 @@ export default Vue.extend({
       this.currentTime = 0;
       setTimeout(() => {
         this.displayedCurrentTime = "00:00";
-      }, 500);
+      }, 300);
       this.currentDotPosition = { x: 0, y: 0 };
       this.seekOffset = { x: 0, y: 0 };
       this.resetDotPosition();
@@ -1034,7 +1038,7 @@ export default Vue.extend({
       this.resetProgressBar();
       setTimeout(() => {
         this.startAnimation();
-      }, 600);
+      }, 300);
     },
     getSongDuration(): Promise<number> {
       return new Promise((resolve) => {
@@ -1134,15 +1138,15 @@ export default Vue.extend({
             width: `${this.barWidth}px`,
             transition: `width ${remainingDuration}ms linear, background 0s`,
           };
-        }, 500);
+        }, 300);
       }
     },
   },
   watch: {
-    getCurrentMediaUrl: {
+    getSoundCloudCurrentMediaUrl: {
       async handler(newVal) {
         if (this.audio) {
-          if (this.getInitiator === StateInitiator.unfiltered) {
+          if (this.getSoundCloudInitiator === StateInitiator.unfiltered) {
             this.queue = this.filteredList;
           } else {
             this.queue = this.oldFilteredList;

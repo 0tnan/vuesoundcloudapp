@@ -11,10 +11,12 @@ const routes: Array<RouteConfig> = [
     component: HomeView,
   },
   {
-    path: "/player",
-    name: "player",
+    path: "/player-selector",
+    name: "playerSelector",
     component: () =>
-      import(/* webpackChunkName: "player" */ "../views/PlayerView.vue"),
+      import(
+        /* webpackChunkName: "player" */ "../views/PlayerSelectorView.vue"
+      ),
   },
 ];
 

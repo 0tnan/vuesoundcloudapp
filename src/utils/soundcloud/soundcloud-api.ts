@@ -1,8 +1,8 @@
-import { Favorites } from "@/interfaces/favorites";
-import { User } from "@/interfaces/user";
-import { PlaylistWithTracks } from "@/interfaces/playlist-with-tracks";
+import { Favorites } from "@/interfaces/soundcloud/favorites";
+import { User } from "@/interfaces/soundcloud/user";
+import { PlaylistWithTracks } from "@/interfaces/soundcloud/playlist-with-tracks";
 import { CapacitorHttp } from "@capacitor/core";
-import { Track } from "@/interfaces/track";
+import { Track } from "@/interfaces/soundcloud/track";
 
 const API_URL = "https://api-v2.soundcloud.com";
 const soundcloudOptions = {

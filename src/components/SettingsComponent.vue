@@ -25,7 +25,7 @@
         type="text"
         v-model="url"
         class="Settings-profileInput Input"
-        placeholder='Paste Your SoundCloud Profile Here (no "on." links )'
+        placeholder='Paste Your SoundCloud Profile URL Here (no "on." links )'
         @blur="reset(getProfile)"
       />
       <transition name="fade">
@@ -59,7 +59,6 @@ import store from "@/store";
 import Vue from "vue";
 import ProfileMixin from "@/mixins/profile";
 import { StyleValue } from "vue/types/jsx";
-import { mapGetters } from "vuex";
 
 export default Vue.extend({
   mixins: [ProfileMixin],
@@ -78,9 +77,6 @@ export default Vue.extend({
       settingsStyle: {} as StyleValue,
       route: false,
     };
-  },
-  computed: {
-    ...mapGetters(["getDarkMode"]),
   },
   methods: {
     toggleDarkMode() {

@@ -10,11 +10,11 @@
 
 <script lang="ts">
 import Vue from "vue";
-import fetchKey from "./utils/fetch-key";
+import fetchKey from "./utils/soundcloud/fetch-key";
 import store from "@/store";
 import { LocalStorage } from "./enums/local-storage";
 import { DarkMode } from "@/enums/dark-mode";
-import { getFavorites } from "./utils/soundcloud-api";
+import { getFavorites } from "./utils/soundcloud/soundcloud-api";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
 import { Capacitor } from "@capacitor/core";
@@ -27,10 +27,10 @@ export default Vue.extend({
     if (darkMode) {
       parsedDarkMode = JSON.parse(darkMode);
     }
-    if (parsedDarkMode === DarkMode.Dark) {
-      store.commit("setDarkMode", true);
-    } else {
+    if (parsedDarkMode === DarkMode.Light) {
       store.commit("setDarkMode", false);
+    } else {
+      store.commit("setDarkMode", true);
     }
 
     if (Capacitor.getPlatform() === "ios") {
@@ -44,29 +44,37 @@ export default Vue.extend({
       Keyboard.setResizeMode({ mode: KeyboardResize.None });
     }
 
-    const user = localStorage.getItem(LocalStorage.User);
-    const profileId = localStorage.getItem(LocalStorage.ProfileId);
-    let parsedUser = "";
-    let parsedProfileId = "";
+    const soundcloudUser = localStorage.getItem(LocalStorage.SoundCloudUser);
+    const soundcloudProfileId = localStorage.getItem(
+      LocalStorage.SoundCloudProfileId
+    );
+    let parsedSoundCloudUser = "";
+    let parsedSoundCloudProfileId = "";
 
-    if (!!user && !!profileId) {
-      parsedUser = JSON.parse(user);
-      parsedProfileId = JSON.parse(profileId);
-      store.commit("setUser", parsedUser);
-      store.commit("setProfileId", parsedProfileId);
+    if (!!soundcloudUser && !!soundcloudProfileId) {
+      parsedSoundCloudUser = JSON.parse(soundcloudUser);
+      parsedSoundCloudProfileId = JSON.parse(soundcloudProfileId);
+      store.commit("setSoundCloudUser", parsedSoundCloudUser);
+      store.commit("setSoundCloudProfileId", parsedSoundCloudProfileId);
     }
 
-    fetchKey().then((clientId: string) => {
-      store.commit("setApiKey", clientId);
+    fetchKey()
+      .then((clientId: string) => {
+        store.commit("setSoundCloudApiKey", clientId);
 
-      if (parsedProfileId) {
-        getFavorites(clientId, parsedProfileId).then((response) => {
-          store.commit("setFavorites", response);
-          store.commit("setNextUrl", response.next_href);
-          this.$router.push("/player");
-        });
-      }
-    });
+        if (parsedSoundCloudProfileId) {
+          getFavorites(clientId, parsedSoundCloudProfileId).then((response) => {
+            store.commit("setSoundCloudFavorites", response);
+            store.commit("setSoundCloudNextUrl", response.next_href);
+            this.$router.push("/player-selector").catch(() => {
+              // DO NOTHING IF ALREADY HERE
+            });
+          });
+        }
+      })
+      .catch(() => {
+        console.error("No key bitch");
+      });
   },
   data() {
     return {

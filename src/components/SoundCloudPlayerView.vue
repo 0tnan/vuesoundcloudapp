@@ -1,5 +1,9 @@
 <template>
-  <div id="player" class="Player" :class="{ 'Player--dark': getDarkMode }">
+  <div
+    id="player"
+    class="SoundCloudPlayer"
+    :class="{ 'SoundCloudPlayer--dark': getDarkMode }"
+  >
     <DraggablePlayer
       @disallowScroll="disableScroll"
       @getNextFavorites="updateFavorites"
@@ -14,45 +18,55 @@
         v-if="showSettings"
       ></SettingsComponent>
     </transition>
-    <div class="Player-topContainer">
-      <div class="Player-avatar">
-        <img loading="lazy" :src="avatarUrl" class="Player-avatarImg" />
+    <div class="SoundCloudPlayer-topContainer">
+      <div class="SoundCloudPlayer-avatar">
+        <img
+          loading="lazy"
+          :src="avatarUrl"
+          class="SoundCloudPlayer-avatarImg"
+        />
       </div>
-      <button @click="toggleSettings" class="Player-settingsIcon">
+      <button @click="toggleSettings" class="SoundCloudPlayer-settingsIcon">
         <img src="@/assets/icons/settings.svg" />
       </button>
     </div>
-    <div class="Player-search">
+    <div class="SoundCloudPlayer-search">
       <input
         @input="onSearch"
         type="text"
-        class="Player-searchInput"
+        class="SoundCloudPlayer-searchInput"
         placeholder="search"
         v-model="searchQuery"
       />
-      <button @click="onRemove" class="Player-searchRemove">
-        <img class="Player-searchRemoveIcon" src="@/assets/icons/cross.svg" />
+      <button @click="onRemove" class="SoundCloudPlayer-searchRemove">
+        <img
+          class="SoundCloudPlayer-searchRemoveIcon"
+          src="@/assets/icons/cross.svg"
+        />
       </button>
-      <img src="@/assets/icons/search.svg" class="Player-searchIcon" />
+      <img
+        src="@/assets/icons/search.svg"
+        class="SoundCloudPlayer-searchIcon"
+      />
       <button
         @click="onRefresh"
-        class="Player-searchRefresh"
-        :class="{ 'Player-searchRefresh--on': isRefreshing }"
+        class="SoundCloudPlayer-searchRefresh"
+        :class="{ 'SoundCloudPlayer-searchRefresh--on': isRefreshing }"
         :disabled="refreshDisabled"
       >
         <img
-          class="Player-searchRefreshIcon"
+          class="SoundCloudPlayer-searchRefreshIcon"
           src="@/assets/icons/refresh.svg"
         />
       </button>
     </div>
-    <div class="Player-viewSwitch">
-      <div class="Player-viewSwitchTitle">Favorites</div>
-      <div class="Player-viewSwitchIcons">
+    <div class="SoundCloudPlayer-viewSwitch">
+      <div class="SoundCloudPlayer-viewSwitchTitle">Favorites</div>
+      <div class="SoundCloudPlayer-viewSwitchIcons">
         <button
           @click="switchToGrid"
           v-if="gridEnabled"
-          class="Player-viewSwitchGrid Player-viewSwitchButton"
+          class="SoundCloudPlayer-viewSwitchGrid SoundCloudPlayer-viewSwitchButton"
         >
           <img v-if="!getDarkMode" src="@/assets/icons/gridLightEnabled.svg" />
           <img v-else src="@/assets/icons/gridDarkEnabled.svg" />
@@ -60,7 +74,7 @@
         <button
           @click="switchToGrid"
           v-else
-          class="Player-viewSwitchGrid Player-viewSwitchButton"
+          class="SoundCloudPlayer-viewSwitchGrid SoundCloudPlayer-viewSwitchButton"
         >
           <img v-if="!getDarkMode" src="@/assets/icons/gridLightDisabled.svg" />
           <img v-else src="@/assets/icons/gridDarkDisabled.svg" />
@@ -68,7 +82,7 @@
         <button
           @click="switchToList"
           v-if="!gridEnabled"
-          class="Player-viewSwitchList Player-viewSwitchButton"
+          class="SoundCloudPlayer-viewSwitchList SoundCloudPlayer-viewSwitchButton"
         >
           <img v-if="!getDarkMode" src="@/assets/icons/listLightEnabled.svg" />
           <img v-else src="@/assets/icons/listDarkEnabled.svg" />
@@ -76,21 +90,25 @@
         <button
           @click="switchToList"
           v-else
-          class="Player-viewSwitchList Player-viewSwitchButton"
+          class="SoundCloudPlayer-viewSwitchList SoundCloudPlayer-viewSwitchButton"
         >
           <img v-if="!getDarkMode" src="@/assets/icons/listLightDisabled.svg" />
           <img v-else src="@/assets/icons/listDarkDisabled.svg" />
         </button>
       </div>
     </div>
-    <div v-if="!searchQuery" id="unfiltered" class="Player-musicUnfiltered">
+    <div
+      v-if="!searchQuery"
+      id="unfiltered"
+      class="SoundCloudPlayer-musicUnfiltered"
+    >
       <transition mode="out-in" name="fade" appear>
         <div
           @scroll="onScroll"
           v-if="gridEnabled"
           key="grid"
           id="queue"
-          class="Player-musicGrid"
+          class="SoundCloudPlayer-musicGrid"
         >
           <GridTile
             v-for="track in filteredTrackList"
@@ -98,9 +116,9 @@
             :track="track"
             :initiator="stateInitiator.unfiltered"
           ></GridTile>
-          <div v-if="!scrollEnd" class="Player-loadingContainer">
+          <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
             <img
-              class="Player-loadingIcon"
+              class="SoundCloudPlayer-loadingIcon"
               loading="lazy"
               src="@/assets/img/loading.gif"
             />
@@ -111,7 +129,7 @@
           v-else
           key="list"
           id="queue"
-          class="Player-musicList"
+          class="SoundCloudPlayer-musicList"
           appear
         >
           <ListTile
@@ -120,9 +138,9 @@
             :track="track"
             :initiator="stateInitiator.unfiltered"
           ></ListTile>
-          <div v-if="!scrollEnd" class="Player-loadingContainer">
+          <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
             <img
-              class="Player-loadingIcon"
+              class="SoundCloudPlayer-loadingIcon"
               loading="lazy"
               src="@/assets/img/loading.gif"
             />
@@ -130,14 +148,14 @@
         </div>
       </transition>
     </div>
-    <div v-else class="Player-musicFiltered">
+    <div v-else class="SoundCloudPlayer-musicFiltered">
       <transition mode="out-in" name="fade" appear>
         <div
           @scroll="onScrollFiltered"
           v-if="gridEnabled"
           key="grid"
           id="queue"
-          class="Player-musicGrid"
+          class="SoundCloudPlayer-musicGrid"
         >
           <GridTile
             v-for="track in oldFilteredTracklist"
@@ -145,9 +163,9 @@
             :track="track"
             :initiator="stateInitiator.filtered"
           ></GridTile>
-          <div v-if="!scrollEnd" class="Player-loadingContainer">
+          <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
             <img
-              class="Player-loadingIcon"
+              class="SoundCloudPlayer-loadingIcon"
               loading="lazy"
               src="@/assets/img/loading.gif"
             />
@@ -158,7 +176,7 @@
           v-else
           key="list"
           id="queue"
-          class="Player-musicList"
+          class="SoundCloudPlayer-musicList"
           appear
         >
           <ListTile
@@ -167,9 +185,9 @@
             :track="track"
             :initiator="stateInitiator.filtered"
           ></ListTile>
-          <div v-if="!scrollEnd" class="Player-loadingContainer">
+          <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
             <img
-              class="Player-loadingIcon"
+              class="SoundCloudPlayer-loadingIcon"
               loading="lazy"
               src="@/assets/img/loading.gif"
             />
@@ -181,8 +199,8 @@
 </template>
 
 <script lang="ts">
-import { Favorites } from "@/interfaces/favorites";
-import { Track } from "@/interfaces/track";
+import { Favorites } from "@/interfaces/soundcloud/favorites";
+import { Track } from "@/interfaces/soundcloud/track";
 import Vue from "vue";
 import { mapGetters } from "vuex";
 import GridTile from "@/components/GridTile.vue";
@@ -194,11 +212,11 @@ import {
   getNextFavorites,
   getPlaylistWithTracks,
   getMultipleTracks,
-} from "../utils/soundcloud-api";
+} from "../utils/soundcloud/soundcloud-api";
 import store from "@/store";
 import { debounce } from "lodash";
 import { StateInitiator } from "@/enums/state-initiator";
-import { FavoriteItem } from "@/interfaces/favorite-item";
+import { FavoriteItem } from "@/interfaces/soundcloud/favorite-item";
 
 const MAX_FILTER_ITEM = 10; // Maximum number of items that will be displayed to avoid too much api calls
 
@@ -238,18 +256,18 @@ export default Vue.extend({
   },
   computed: {
     ...mapGetters([
-      "getApiKey",
-      "getProfileId",
-      "getFavorites",
-      "getUser",
-      "getNextUrl",
+      "getSoundCloudApiKey",
+      "getSoundCloudProfileId",
+      "getSoundCloudFavorites",
+      "getSoundCloudUser",
+      "getSoundCloudNextUrl",
       "getDarkMode",
     ]),
     username(): string {
-      return this.getUser.username;
+      return this.getSoundCloudUser.username;
     },
     avatarUrl(): string {
-      return this.getUser.avatar_url.replace("-large", "-t500x500");
+      return this.getSoundCloudUser.avatar_url.replace("-large", "-t500x500");
     },
     filteredTrackList(): Track[] {
       const lowercaseQuery = this.searchQuery.toLocaleLowerCase();
@@ -294,24 +312,25 @@ export default Vue.extend({
       this.gridEnabled = false;
     },
     updateFavorites() {
-      if (this.getNextUrl !== null) {
-        getNextFavorites(this.getApiKey, this.getNextUrl).then(
-          (results: Favorites) => {
-            results.collection.forEach((favoriteItem: FavoriteItem) => {
-              this.handleFavoriteItem(favoriteItem);
-            });
-            store.commit("addToFavorites", results.collection);
-            store.commit("setNextUrl", results.next_href);
-          }
-        );
+      if (this.getSoundCloudNextUrl !== null) {
+        getNextFavorites(
+          this.getSoundCloudApiKey,
+          this.getSoundCloudNextUrl
+        ).then((results: Favorites) => {
+          results.collection.forEach((favoriteItem: FavoriteItem) => {
+            this.handleFavoriteItem(favoriteItem);
+          });
+          store.commit("addToSoundCloudFavorites", results.collection);
+          store.commit("setSoundCloudNextUrl", results.next_href);
+        });
       }
     },
     forceUpdate() {
       const unfiltered = document.getElementById("unfiltered");
       const queue = document.getElementById("queue");
       if (
-        !!this.getFavorites &&
-        !!this.getNextUrl &&
+        !!this.getSoundCloudFavorites &&
+        !!this.getSoundCloudNextUrl &&
         unfiltered &&
         queue &&
         queue.scrollHeight <= unfiltered.offsetHeight
@@ -327,13 +346,13 @@ export default Vue.extend({
       this.isRefreshing = true;
       this.refreshDisabled = true;
       this.scrollEnd = false;
-      store.commit("setFavorites", {});
-      store.commit("setNextUrl", "");
+      store.commit("setSoundCloudFavorites", {});
+      store.commit("setSoundCloudNextUrl", "");
       this.tracklist = [];
-      getFavorites(this.getApiKey, this.getProfileId)
+      getFavorites(this.getSoundCloudApiKey, this.getSoundCloudProfileId)
         .then((response) => {
-          store.commit("setFavorites", response);
-          store.commit("setNextUrl", response.next_href);
+          store.commit("setSoundCloudFavorites", response);
+          store.commit("setSoundCloudNextUrl", response.next_href);
           this.populateFavorites();
         })
         .finally(() => {
@@ -357,27 +376,28 @@ export default Vue.extend({
       } else {
         this.filterTracker = MAX_FILTER_ITEM;
       }
-      if (this.getNextUrl !== null) {
+      if (this.getSoundCloudNextUrl !== null) {
         this.recursiveGetNextFavorites();
       }
     },
     recursiveGetNextFavorites() {
-      if (this.getNextUrl) {
-        getNextFavorites(this.getApiKey, this.getNextUrl).then(
-          (results: Favorites) => {
-            results.collection.forEach((favoriteItem: FavoriteItem) => {
-              this.handleFavoriteItem(favoriteItem);
-            });
-            store.commit("addToFavorites", results.collection);
-            store.commit("setNextUrl", results.next_href);
-            if (this.oldFilteredTracklistLength < this.filterTracker) {
-              this.recursiveGetNextFavorites();
-            } else if (this.oldFilteredTracklistLength === this.filterTracker) {
-              this.filterTracker += this.filterTracker;
-              return;
-            }
+      if (this.getSoundCloudNextUrl) {
+        getNextFavorites(
+          this.getSoundCloudApiKey,
+          this.getSoundCloudNextUrl
+        ).then((results: Favorites) => {
+          results.collection.forEach((favoriteItem: FavoriteItem) => {
+            this.handleFavoriteItem(favoriteItem);
+          });
+          store.commit("addToSoundCloudFavorites", results.collection);
+          store.commit("setSoundCloudNextUrl", results.next_href);
+          if (this.oldFilteredTracklistLength < this.filterTracker) {
+            this.recursiveGetNextFavorites();
+          } else if (this.oldFilteredTracklistLength === this.filterTracker) {
+            this.filterTracker += this.filterTracker;
+            return;
           }
-        );
+        });
       }
     },
     scrollHandler(callback: () => void) {
@@ -385,7 +405,7 @@ export default Vue.extend({
       if (queue) {
         const isScrollEnd =
           queue.scrollTop + queue.clientHeight >= queue.scrollHeight;
-        if (isScrollEnd && !!this.getNextUrl) {
+        if (isScrollEnd && !!this.getSoundCloudNextUrl) {
           callback();
         }
       }
@@ -397,7 +417,7 @@ export default Vue.extend({
       this.scrollHandler(this.recursiveGetNextFavorites);
     },
     populateFavorites() {
-      const favorites = this.getFavorites as Favorites;
+      const favorites = this.getSoundCloudFavorites as Favorites;
       favorites.collection.forEach((favoriteItem: FavoriteItem) => {
         this.handleFavoriteItem(favoriteItem);
       });
@@ -407,7 +427,10 @@ export default Vue.extend({
         this.tracklist.push(favoriteItem.track);
       } else if (favoriteItem.playlist) {
         const ids = [] as number[];
-        getPlaylistWithTracks(this.getApiKey, favoriteItem.playlist.id)
+        getPlaylistWithTracks(
+          this.getSoundCloudApiKey,
+          favoriteItem.playlist.id
+        )
           .then((playlistWithTracks) => {
             playlistWithTracks.tracks.forEach((track: Track) => {
               const hasMedia = !!track.media;
@@ -421,13 +444,15 @@ export default Vue.extend({
           })
           .finally(() => {
             if (ids.length > 0) {
-              getMultipleTracks(this.getApiKey, ids).then((tracks: Track[]) => {
-                tracks.forEach((track: Track) => {
-                  if (track && !this.tracklist.includes(track)) {
-                    this.tracklist.push(track);
-                  }
-                });
-              });
+              getMultipleTracks(this.getSoundCloudApiKey, ids).then(
+                (tracks: Track[]) => {
+                  tracks.forEach((track: Track) => {
+                    if (track && !this.tracklist.includes(track)) {
+                      this.tracklist.push(track);
+                    }
+                  });
+                }
+              );
             }
           });
       }
@@ -458,7 +483,7 @@ export default Vue.extend({
 </script>
 
 <style lang="scss" scoped>
-.Player {
+.SoundCloudPlayer {
   $block: &;
 
   padding: 4rem 2.5rem;
