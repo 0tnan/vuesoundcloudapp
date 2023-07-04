@@ -416,13 +416,11 @@ export default Vue.extend({
                 this.tracklist.push(track);
               } else if (hasIdNotMedia) {
                 ids.push(track.id);
-                console.log(ids);
               }
             });
           })
           .finally(() => {
             if (ids.length > 0) {
-              console.log("here");
               getMultipleTracks(this.getApiKey, ids).then((tracks: Track[]) => {
                 tracks.forEach((track: Track) => {
                   if (track && !this.tracklist.includes(track)) {
