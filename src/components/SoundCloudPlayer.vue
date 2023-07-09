@@ -7,8 +7,10 @@
     <DraggablePlayer
       @disallowScroll="disableScroll"
       @getNextFavorites="updateFavorites"
+      @unsetTrigger="unsetTrigger"
       :filteredList="filteredTrackList"
       :oldFilteredList="oldFilteredTracklist"
+      :triggerAnimation="triggerAnimation"
     ></DraggablePlayer>
     <transition name="slide" appear>
       <SettingsComponent
@@ -217,6 +219,7 @@ import store from "@/store";
 import { debounce } from "lodash";
 import { StateInitiator } from "@/enums/state-initiator";
 import { FavoriteItem } from "@/interfaces/soundcloud/favorite-item";
+import { PlaylistWithTracks } from "@/interfaces/soundcloud/playlist-with-tracks";
 
 const MAX_FILTER_ITEM = 10; // Maximum number of items that will be displayed to avoid too much api calls
 
@@ -239,6 +242,7 @@ export default Vue.extend({
       showSettings: false,
       filterTracker: MAX_FILTER_ITEM,
       stateInitiator: StateInitiator,
+      triggerAnimation: false,
     };
   },
   created() {
@@ -249,6 +253,9 @@ export default Vue.extend({
       this.recursiveGetNextFavorites,
       500
     );
+  },
+  activated() {
+    this.triggerAnimation = true;
   },
   mounted() {
     this.populateFavorites();
@@ -333,7 +340,7 @@ export default Vue.extend({
         !!this.getSoundCloudNextUrl &&
         unfiltered &&
         queue &&
-        queue.scrollHeight <= unfiltered.offsetHeight
+        queue.scrollHeight <= unfiltered.offsetHeight - 100
       ) {
         this.updateFavorites();
         this.forceUpdate();
@@ -427,32 +434,53 @@ export default Vue.extend({
         this.tracklist.push(favoriteItem.track);
       } else if (favoriteItem.playlist) {
         const ids = [] as number[];
+        const tracksFromPlaylist = [] as Track[];
+        let playlist = {} as PlaylistWithTracks;
         getPlaylistWithTracks(
           this.getSoundCloudApiKey,
           favoriteItem.playlist.id
         )
           .then((playlistWithTracks) => {
+            playlist = playlistWithTracks;
             playlistWithTracks.tracks.forEach((track: Track) => {
               const hasMedia = !!track.media;
               const hasIdNotMedia = !!track.id && !track.media;
               if (hasMedia) {
-                this.tracklist.push(track);
+                tracksFromPlaylist.push(track);
               } else if (hasIdNotMedia) {
                 ids.push(track.id);
               }
             });
           })
-          .finally(() => {
+          .then(() => {
             if (ids.length > 0) {
-              getMultipleTracks(this.getSoundCloudApiKey, ids).then(
-                (tracks: Track[]) => {
+              getMultipleTracks(this.getSoundCloudApiKey, ids)
+                .then((tracks: Track[]) => {
                   tracks.forEach((track: Track) => {
                     if (track && !this.tracklist.includes(track)) {
-                      this.tracklist.push(track);
+                      tracksFromPlaylist.push(track);
                     }
                   });
-                }
-              );
+                })
+                .then(() => {
+                  const orderedTracksFromPlaylist = [] as Track[];
+                  if (tracksFromPlaylist.length > 0) {
+                    playlist.tracks.forEach((track) => {
+                      const item = tracksFromPlaylist.find(
+                        (item) => item.id === track.id
+                      );
+                      if (item) {
+                        orderedTracksFromPlaylist.push(item);
+                      }
+                    });
+                  }
+                  this.tracklist = [
+                    ...this.tracklist,
+                    ...orderedTracksFromPlaylist,
+                  ];
+                });
+            } else {
+              this.tracklist = [...this.tracklist, ...tracksFromPlaylist];
             }
           });
       }
@@ -471,9 +499,12 @@ export default Vue.extend({
     reset() {
       this.tracklist = [];
     },
+    unsetTrigger() {
+      this.triggerAnimation = false;
+    },
   },
   watch: {
-    getNextUrl(newVal) {
+    getSoundCloudNextUrl(newVal) {
       if (newVal === null) {
         this.scrollEnd = true;
       }
@@ -486,11 +517,13 @@ export default Vue.extend({
 .SoundCloudPlayer {
   $block: &;
 
-  padding: 4rem 2.5rem;
+  padding: 0 2.5rem;
   height: 100%;
   position: relative;
   overflow: hidden;
   transition: all 0.5s;
+  position: relative;
+  z-index: 1;
 
   &-loading {
     &Container {
@@ -635,7 +668,7 @@ export default Vue.extend({
     overflow-x: hidden;
     height: calc(100vh - 37rem);
     display: flex;
-    padding-bottom: 10rem;
+    padding-bottom: 12rem;
   }
 
   &-musicGrid {
