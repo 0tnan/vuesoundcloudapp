@@ -3,7 +3,12 @@
     ref="draggable"
     id="draggable"
     class="DraggablePlayer"
-    :class="{ 'DraggablePlayer--dark': getDarkMode }"
+    :class="{
+      'DraggablePlayer--dark': getDarkMode,
+      'DraggablePlayer--ios': isIos,
+      'DraggablePlayer--web': isWeb,
+      'DraggablePlayer-android': isAndroid,
+    }"
     :style="draggableStyle"
   >
     <div class="DraggablePlayer-dragButton" :style="buttonStyle"></div>
@@ -143,6 +148,12 @@
                   loading="lazy"
                   :src="getCurrentFullScaleImage"
                   class="DraggablePlayer-contentSliderCurrentArtwork"
+                  :class="{
+                    'DraggablePlayer-contentSliderCurrentArtwork--paused':
+                      paused,
+                    'DraggablePlayer-contentSliderCurrentArtwork--ended':
+                      currentSongEnded,
+                  }"
                 />
                 <img
                   loading="lazy"
@@ -323,10 +334,14 @@ import { Track } from "@/interfaces/soundcloud/track";
 import { StyleValue } from "vue/types/jsx";
 import { MediaSession } from "@jofr/capacitor-media-session";
 import { StateInitiator } from "@/enums/state-initiator";
+import PlatformMixin from "@/mixins/platform";
+import { Platform } from "@/enums/platform";
+import { Players } from "@/enums/players";
 
-const INITIAL_POSITION = "12%";
-const TRANSITION = "all 0.5s ease-in";
-const BUTTON_TRANSFORM = "translateX(-50%) translateY(-2rem)";
+const INITIAL_POSITION = "95px";
+const INITIAL_POSITION_IOS = "125px";
+const TRANSITION = "all 0.3s ease-in-out";
+const BUTTON_TRANSFORM = "translateX(-50%) translateY(-1.5rem)";
 const BUTTON_INITIAL = "translateX(-50%) translateY(0)";
 const DEFAULT_OPACITY = 95;
 const TOTAL_OPACITY = 100;
@@ -345,7 +360,11 @@ interface ArtworkItem {
   sizes: string;
 }
 
+const BOTTOM_WEB = 45;
+const BOTTOM_IOS = 40;
+
 export default Vue.extend({
+  mixins: [PlatformMixin],
   data() {
     return {
       viewportHeight: 0,
@@ -418,6 +437,10 @@ export default Vue.extend({
       type: Array as PropType<Track[]>,
       default: () => [],
     },
+    triggerAnimation: {
+      type: Boolean,
+      default: false,
+    },
   },
   mounted() {
     this.audio = new Audio("");
@@ -431,7 +454,14 @@ export default Vue.extend({
       this.barWidth = bar.offsetWidth;
       this.dotMaxBound = this.barWidth - DOT_WIDTH;
       this.audio = new Audio("");
-      this.maxHeight = player.offsetHeight;
+      if (
+        this.getPlatform === Platform.web ||
+        this.getPlatform === Platform.android
+      ) {
+        this.maxHeight = player.offsetHeight - BOTTOM_WEB;
+      } else if (this.getPlatform === Platform.ios) {
+        this.maxHeight = player.offsetHeight - BOTTOM_IOS;
+      }
       this.topBound = this.viewportHeight - this.maxHeight;
       this.draggableWidth = draggable.offsetWidth;
     }
@@ -446,6 +476,16 @@ export default Vue.extend({
 
     this.next = debounce(this.next, 200);
     this.previous = debounce(this.previous, 200);
+    this.$parent?.$emit("soundCloudAsPlayer", {
+      player: Players.soundcloud,
+      height: this.maxHeight,
+    });
+  },
+  activated() {
+    this.$parent?.$emit("soundCloudAsPlayer", {
+      player: Players.soundcloud,
+      height: this.maxHeight,
+    });
   },
   beforeDestroy() {
     document.removeEventListener("visibilitychange", this.visibilityHandler);
@@ -458,6 +498,7 @@ export default Vue.extend({
       "getSoundCloudNextUrl",
       "getDarkMode",
       "getSoundCloudInitiator",
+      "getPlatform",
     ]),
     hasCurrentSong(): boolean {
       return this.getSoundCloudCurrentMediaUrl ? true : false;
@@ -620,6 +661,10 @@ export default Vue.extend({
           scale: 1 - positionFraction,
           transition: "none",
         };
+        this.$parent?.$emit(
+          "isDragging",
+          this.viewportHeight - this.currentPlayerPosition
+        );
       }
     },
     endDrag(e: TouchEvent) {
@@ -651,12 +696,21 @@ export default Vue.extend({
       this.$emit("disallowScroll", false);
     },
     dragDown() {
-      this.draggableStyle = {
-        height: `${INITIAL_POSITION}`,
-        transition: TRANSITION,
-        opacity: `${DEFAULT_OPACITY}%`,
-        transform: `translate3d(0, 0, 0)`,
-      };
+      if (this.getPlatform === Platform.ios) {
+        this.draggableStyle = {
+          height: `${INITIAL_POSITION_IOS}`,
+          transition: TRANSITION,
+          opacity: `${DEFAULT_OPACITY}%`,
+          transform: `translate3d(0, 0, 0)`,
+        };
+      } else {
+        this.draggableStyle = {
+          height: `${INITIAL_POSITION}`,
+          transition: TRANSITION,
+          opacity: `${DEFAULT_OPACITY}%`,
+          transform: `translate3d(0, 0, 0)`,
+        };
+      }
       this.contentStyle = {
         opacity: 0,
         transition: TRANSITION,
@@ -669,6 +723,7 @@ export default Vue.extend({
       this.buttonStyle = {
         transform: BUTTON_TRANSFORM,
       };
+      this.$parent?.$emit("dragDown");
     },
     dragUp() {
       this.draggableStyle = {
@@ -689,6 +744,7 @@ export default Vue.extend({
       this.buttonStyle = {
         transform: BUTTON_INITIAL,
       };
+      this.$parent?.$emit("dragUp");
     },
     startSeek(e: TouchEvent) {
       this.isSeeking = true;
@@ -755,6 +811,15 @@ export default Vue.extend({
           this.replayCurrentSong(false);
         }
       } else {
+        if (this.currentTime < 3000 && this.loopAll) {
+          const lastSong = this.queue[this.queueLength - 1];
+          if (lastSong) {
+            store.dispatch("updateSoundCloudSong", {
+              track: lastSong,
+              mediaUrl: lastSong.media.transcodings[1].url,
+            });
+          }
+        }
         this.replayCurrentSong(false);
       }
     },
@@ -899,7 +964,8 @@ export default Vue.extend({
           };
           this.progressStyle = {
             width: `${this.barWidth}px`,
-            transition: `width ${remainingDuration}ms linear, background 0s`,
+            transform: "translate3D(0, 0, 0)",
+            transition: `width ${remainingDuration}ms linear, background 0s, transform 0s`,
           };
         }, 300);
       }
@@ -953,7 +1019,7 @@ export default Vue.extend({
         ) {
           const firstSong = this.queue.find((item) => item !== undefined);
           if (firstSong) {
-            store.dispatch("updateSong", {
+            store.dispatch("updateSoundCloudSong", {
               track: firstSong,
               mediaUrl: firstSong.media.transcodings[1].url,
             });
@@ -1030,7 +1096,8 @@ export default Vue.extend({
       };
       this.progressStyle = {
         width: `${this.barWidth}px`,
-        transition: `width ${this.currentSongDuration}ms linear, background 0s`,
+        transform: "translate3D(0, 0, 0)",
+        transition: `width ${this.currentSongDuration}ms linear, background 0s, transform 0s`,
       };
     },
     resetDotAnimation() {
@@ -1136,7 +1203,8 @@ export default Vue.extend({
           };
           this.progressStyle = {
             width: `${this.barWidth}px`,
-            transition: `width ${remainingDuration}ms linear, background 0s`,
+            transform: "translate3D(0, 0, 0)",
+            transition: `width ${remainingDuration}ms linear, background 0s, transform 0s`,
           };
         }, 300);
       }
@@ -1237,6 +1305,12 @@ export default Vue.extend({
       deep: true,
       immediate: true,
     },
+    triggerAnimation(val) {
+      if (val) {
+        this.updateOnExternalControl();
+        this.$emit("unsetTrigger");
+      }
+    },
   },
 });
 </script>
@@ -1246,15 +1320,16 @@ export default Vue.extend({
   $block: &;
 
   position: absolute;
-  left: 1.5rem;
+  left: 0;
   bottom: 0;
   z-index: 999;
-  height: 12%;
-  width: calc(100vw - 3rem);
+  height: 9.5rem;
+  width: 100vw;
   background: $light;
   border-radius: 3rem 3rem 0 0;
   transition: all 0.5s ease-in;
   opacity: 95%;
+  padding-bottom: 0.5rem;
 
   &--dark {
     background: $dark;
@@ -1316,27 +1391,40 @@ export default Vue.extend({
       }
 
       &Repeat {
-        &--one,
-        &--all {
+        &--one {
           &::after {
             color: $white;
+          }
+        }
+        &--all {
+          &::after {
+            background: $white;
           }
         }
       }
     }
   }
 
+  &--web {
+    bottom: 4.5rem;
+  }
+
+  &--ios {
+    bottom: 4rem;
+    height: 12.5rem;
+  }
+
   &-drag {
     &Button {
       position: absolute;
-      height: 1rem;
-      width: 8rem;
+      height: 0.5rem;
+      width: 5rem;
       border-radius: 5rem;
       background: $black;
       left: 50%;
       transform: translateX(-50%) translateY(-2rem);
       top: 0.5rem;
-      transition: all 0.5s;
+      transition: all 0.3s;
     }
 
     &Area {
@@ -1354,7 +1442,7 @@ export default Vue.extend({
     position: absolute;
     z-index: 1;
     width: 100%;
-    padding: 1.5rem 3rem 0 1rem;
+    padding: 1.5rem 3rem 0 2.5rem;
     height: 7.5rem;
     display: flex;
     justify-content: space-between;
@@ -1527,6 +1615,7 @@ export default Vue.extend({
         &Artwork {
           position: relative;
           z-index: 2;
+          transition: all 0.3s;
 
           &--blurred {
             position: absolute;
@@ -1535,6 +1624,14 @@ export default Vue.extend({
             filter: blur(5rem);
             transform: scale(1.05) translateY(1rem) translate3d(0, 0, 0);
             opacity: 0.7;
+          }
+
+          &--paused {
+            transform: scale(0.8);
+          }
+
+          &--ended {
+            transform: scale(1);
           }
         }
 
@@ -1550,7 +1647,7 @@ export default Vue.extend({
           text-align: center;
           line-height: 2.2rem;
           white-space: nowrap;
-          width: calc(100vw - 3rem);
+          width: 100vw;
         }
 
         &Title {
@@ -1633,6 +1730,9 @@ export default Vue.extend({
     }
 
     &Repeat {
+      position: relative;
+      padding-left: 1.5rem;
+
       &--one {
         &::after {
           content: "1";
@@ -1642,28 +1742,44 @@ export default Vue.extend({
 
       &--all {
         &::after {
-          content: "all";
+          content: "";
           font-weight: 700;
+          width: 0.5rem;
+          height: 0.5rem;
+          background: $black;
+          border-radius: 50%;
+        }
+      }
+
+      &--all,
+      &--one {
+        &::after {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          bottom: 2rem;
+          margin-left: -0.5rem;
         }
       }
     }
 
     &Shuffle {
       position: relative;
+      padding-right: 1.5rem;
 
       &--active {
         &::after {
           content: "";
           position: absolute;
           left: 50%;
-          top: 50%;
-          transform: translateX(-50%) translateY(50%);
-          margin-top: 0.5rem;
+          bottom: 2rem;
+          transform: translateX(-50%);
           height: 0.5rem;
           width: 0.5rem;
           display: block;
           border-radius: 50%;
           background: $black;
+          margin-left: 0.5rem;
         }
       }
     }

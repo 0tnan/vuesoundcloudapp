@@ -9,6 +9,7 @@ import { Capacitor } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { LocalStorage } from "@/enums/local-storage";
 import { DarkMode } from "@/enums/dark-mode";
+import { Platform } from "@/enums/platform";
 
 Vue.use(Vuex);
 
@@ -16,6 +17,7 @@ interface State {
   soundCloudState: SoundCloudState;
   spotifyState: SpotifyState;
   isDarkMode: boolean;
+  platform: Platform;
 }
 
 interface Payload {
@@ -68,6 +70,7 @@ export default new Vuex.Store({
         apiKey: "",
       } as SpotifyState,
       isDarkMode: true,
+      platform: Platform.web,
     };
   },
   getters: {
@@ -97,6 +100,9 @@ export default new Vuex.Store({
     },
     getSoundCloudInitiator(state: State) {
       return state.soundCloudState.initiatedBy;
+    },
+    getPlatform(state: State) {
+      return state.platform;
     },
   },
   mutations: {
@@ -144,6 +150,9 @@ export default new Vuex.Store({
       state.soundCloudState.nextUrl = "";
       state.soundCloudState.currentSong = {} as Track;
       state.soundCloudState.currentMediaUrl = "";
+    },
+    setPlatform(state: State, value: Platform) {
+      state.platform = value;
     },
   },
   actions: {

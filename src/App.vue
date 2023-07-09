@@ -2,7 +2,12 @@
   <div
     id="app"
     class="App"
-    :class="{ 'App--dark': getDarkMode, 'App--ios': isIos }"
+    :class="{
+      'App--dark': getDarkMode,
+      'App--ios': isIos,
+      'App--web': isWeb,
+      'App--android': isAndroid,
+    }"
   >
     <router-view />
   </div>
@@ -19,8 +24,11 @@ import { StatusBar, Style } from "@capacitor/status-bar";
 import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
 import { Capacitor } from "@capacitor/core";
 import { mapGetters } from "vuex";
+import { Platform } from "@/enums/platform";
+import PlatformMixin from "@/mixins/platform";
 
 export default Vue.extend({
+  mixins: [PlatformMixin],
   async created() {
     const darkMode = localStorage.getItem(LocalStorage.DarkMode);
     let parsedDarkMode = "" as DarkMode;
@@ -33,8 +41,8 @@ export default Vue.extend({
       store.commit("setDarkMode", true);
     }
 
-    if (Capacitor.getPlatform() === "ios") {
-      this.isIos = true;
+    if (Capacitor.getPlatform() === Platform.ios) {
+      store.commit("setPlatform", Platform.ios);
       if (this.getDarkMode) {
         await StatusBar.setStyle({ style: Style.Dark });
       } else {
@@ -42,6 +50,10 @@ export default Vue.extend({
       }
       Keyboard.setScroll({ isDisabled: true });
       Keyboard.setResizeMode({ mode: KeyboardResize.None });
+    } else if (Capacitor.getPlatform() === Platform.android) {
+      store.commit("setPlatform", Platform.android);
+    } else {
+      store.commit("setPlatform", Platform.web);
     }
 
     const soundcloudUser = localStorage.getItem(LocalStorage.SoundCloudUser);
@@ -73,13 +85,8 @@ export default Vue.extend({
         }
       })
       .catch(() => {
-        console.error("No key bitch");
+        //
       });
-  },
-  data() {
-    return {
-      isIos: false,
-    };
   },
   computed: {
     ...mapGetters(["getDarkMode"]),
@@ -92,7 +99,7 @@ export default Vue.extend({
 
 .App {
   height: 100%;
-  padding: 0;
+  padding: 3rem 0;
   transition: all 0.5s;
 
   &--dark {
@@ -100,7 +107,7 @@ export default Vue.extend({
   }
 
   &--ios {
-    padding: 5rem 0;
+    padding: 5rem 0 0;
   }
 }
 </style>
