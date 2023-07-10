@@ -159,11 +159,17 @@ export default new Vuex.Store({
     },
     setSpotifyAccessToken(state: State, token: string) {
       state.spotifyState.accessToken = token;
-      localStorage.setItem(LocalStorage.SpotifyAccessToken, token);
+      localStorage.setItem(
+        LocalStorage.SpotifyAccessToken,
+        JSON.stringify(token)
+      );
     },
     setSpotifyRefreshToken(state: State, token: string) {
       state.spotifyState.refreshToken = token;
-      localStorage.setItem(LocalStorage.SpotifyRefreshToken, token);
+      localStorage.setItem(
+        LocalStorage.SpotifyRefreshToken,
+        JSON.stringify(token)
+      );
     },
     setSoundCloudApiKey(state: State, apiKey: string) {
       state.soundCloudState.apiKey = apiKey;

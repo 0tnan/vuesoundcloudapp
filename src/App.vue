@@ -62,14 +62,30 @@ export default Vue.extend({
     const soundcloudProfileId = localStorage.getItem(
       LocalStorage.SoundCloudProfileId
     );
+    const spotifyAccessToken = localStorage.getItem(
+      LocalStorage.SpotifyAccessToken
+    );
+    const spotifyRefreshToken = localStorage.getItem(
+      LocalStorage.SpotifyRefreshToken
+    );
+
     let parsedSoundCloudUser = "";
     let parsedSoundCloudProfileId = "";
+    let parsedSpotifyAccessToken = "";
+    let parsedSpotifyRefreshToken = "";
 
     if (!!soundcloudUser && !!soundcloudProfileId) {
       parsedSoundCloudUser = JSON.parse(soundcloudUser);
       parsedSoundCloudProfileId = JSON.parse(soundcloudProfileId);
       store.commit("setSoundCloudUser", parsedSoundCloudUser);
       store.commit("setSoundCloudProfileId", parsedSoundCloudProfileId);
+    }
+
+    if (!!spotifyAccessToken && !!spotifyRefreshToken) {
+      parsedSpotifyAccessToken = JSON.parse(spotifyAccessToken);
+      parsedSpotifyRefreshToken = JSON.parse(spotifyRefreshToken);
+      store.commit("setSpotifyAccessToken", parsedSpotifyAccessToken);
+      store.commit("setSpotifyRefreshToken", parsedSpotifyRefreshToken);
     }
 
     fetchKey()
@@ -108,7 +124,7 @@ export default Vue.extend({
 
 .App {
   height: 100%;
-  padding: 0;
+  padding: 1rem 0 0;
   transition: all 0.5s;
 
   &--dark {

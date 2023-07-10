@@ -1,8 +1,18 @@
 <template>
-  <div
-    id="player"
+  <GenericPlayer
     class="SoundCloudPlayer"
     :class="{ 'SoundCloudPlayer--dark': getDarkMode }"
+    :avatarURL="avatarURL"
+    :toggleSettings="toggleSettings"
+    :value="searchQuery"
+    @input="onSearch"
+    :onRemove="onRemove"
+    :onRefresh="onRefresh"
+    :isRefreshing="isRefreshing"
+    :refreshDisabled="refreshDisabled"
+    :switchToGrid="switchToGrid"
+    :switchToList="switchToList"
+    :gridEnabled="gridEnabled"
   >
     <DraggablePlayer
       @disallowScroll="disableScroll"
@@ -11,195 +21,117 @@
       :filteredList="filteredTrackList"
       :oldFilteredList="oldFilteredTracklist"
       :triggerAnimation="triggerAnimation"
+      slot="player"
     ></DraggablePlayer>
-    <transition name="slide" appear>
-      <SettingsComponent
-        @toggleSettings="toggleSettings"
-        @reset="reset"
-        @populate="populateFavorites"
-        v-if="showSettings"
-      ></SettingsComponent>
-    </transition>
-    <div class="SoundCloudPlayer-topContainer">
-      <div class="SoundCloudPlayer-avatar">
-        <img
-          loading="lazy"
-          :src="avatarUrl"
-          class="SoundCloudPlayer-avatarImg"
-        />
-      </div>
-      <button @click="toggleSettings" class="SoundCloudPlayer-settingsIcon">
-        <img src="@/assets/icons/settings.svg" />
-      </button>
-    </div>
-    <div class="SoundCloudPlayer-search">
-      <input
-        autocomplete="off"
-        autocorrect="off"
-        @input="onSearch"
-        type="text"
-        class="SoundCloudPlayer-searchInput"
-        placeholder="search"
-        v-model="searchQuery"
-      />
-      <button @click="onRemove" class="SoundCloudPlayer-searchRemove">
-        <img
-          class="SoundCloudPlayer-searchRemoveIcon"
-          src="@/assets/icons/cross.svg"
-        />
-      </button>
-      <img
-        src="@/assets/icons/search.svg"
-        class="SoundCloudPlayer-searchIcon"
-      />
-      <button
-        @click="onRefresh"
-        class="SoundCloudPlayer-searchRefresh"
-        :class="{ 'SoundCloudPlayer-searchRefresh--on': isRefreshing }"
-        :disabled="refreshDisabled"
+    <SettingsComponent
+      @toggleSettings="toggleSettings"
+      @reset="reset"
+      @populate="populateFavorites"
+      v-if="showSettings"
+      slot="settings"
+    ></SettingsComponent>
+    <div class="SoundCloudPlayer-viewSwitchTitle" slot="menu">Favorites</div>
+    <div class="SoundCloudPlayer-list" slot="lists">
+      <div
+        v-if="!searchQuery"
+        id="unfiltered"
+        class="SoundCloudPlayer-musicUnfiltered"
       >
-        <img
-          class="SoundCloudPlayer-searchRefreshIcon"
-          src="@/assets/icons/refresh.svg"
-        />
-      </button>
-    </div>
-    <div class="SoundCloudPlayer-viewSwitch">
-      <div class="SoundCloudPlayer-viewSwitchTitle">Favorites</div>
-      <div class="SoundCloudPlayer-viewSwitchIcons">
-        <button
-          @click="switchToGrid"
-          v-if="gridEnabled"
-          class="SoundCloudPlayer-viewSwitchGrid SoundCloudPlayer-viewSwitchButton"
-        >
-          <img v-if="!getDarkMode" src="@/assets/icons/gridLightEnabled.svg" />
-          <img v-else src="@/assets/icons/gridDarkEnabled.svg" />
-        </button>
-        <button
-          @click="switchToGrid"
-          v-else
-          class="SoundCloudPlayer-viewSwitchGrid SoundCloudPlayer-viewSwitchButton"
-        >
-          <img v-if="!getDarkMode" src="@/assets/icons/gridLightDisabled.svg" />
-          <img v-else src="@/assets/icons/gridDarkDisabled.svg" />
-        </button>
-        <button
-          @click="switchToList"
-          v-if="!gridEnabled"
-          class="SoundCloudPlayer-viewSwitchList SoundCloudPlayer-viewSwitchButton"
-        >
-          <img v-if="!getDarkMode" src="@/assets/icons/listLightEnabled.svg" />
-          <img v-else src="@/assets/icons/listDarkEnabled.svg" />
-        </button>
-        <button
-          @click="switchToList"
-          v-else
-          class="SoundCloudPlayer-viewSwitchList SoundCloudPlayer-viewSwitchButton"
-        >
-          <img v-if="!getDarkMode" src="@/assets/icons/listLightDisabled.svg" />
-          <img v-else src="@/assets/icons/listDarkDisabled.svg" />
-        </button>
+        <transition mode="out-in" name="fade" appear>
+          <div
+            @scroll="onScroll"
+            v-if="gridEnabled"
+            key="grid"
+            id="queue"
+            class="SoundCloudPlayer-musicGrid"
+          >
+            <GridTile
+              v-for="track in filteredTrackList"
+              :key="track.id"
+              :track="track"
+              :initiator="stateInitiator.unfiltered"
+            ></GridTile>
+            <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
+              <img
+                class="SoundCloudPlayer-loadingIcon"
+                loading="lazy"
+                src="@/assets/img/loading.gif"
+              />
+            </div>
+          </div>
+          <div
+            @scroll="onScroll"
+            v-else
+            key="list"
+            id="queue"
+            class="SoundCloudPlayer-musicList"
+            appear
+          >
+            <ListTile
+              v-for="track in filteredTrackList"
+              :key="track.id"
+              :track="track"
+              :initiator="stateInitiator.unfiltered"
+            ></ListTile>
+            <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
+              <img
+                class="SoundCloudPlayer-loadingIcon"
+                loading="lazy"
+                src="@/assets/img/loading.gif"
+              />
+            </div>
+          </div>
+        </transition>
+      </div>
+      <div v-else class="SoundCloudPlayer-musicFiltered">
+        <transition mode="out-in" name="fade" appear>
+          <div
+            @scroll="onScrollFiltered"
+            v-if="gridEnabled"
+            key="grid"
+            id="queue"
+            class="SoundCloudPlayer-musicGrid"
+          >
+            <GridTile
+              v-for="track in oldFilteredTracklist"
+              :key="track.id"
+              :track="track"
+              :initiator="stateInitiator.filtered"
+            ></GridTile>
+            <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
+              <img
+                class="SoundCloudPlayer-loadingIcon"
+                loading="lazy"
+                src="@/assets/img/loading.gif"
+              />
+            </div>
+          </div>
+          <div
+            @scroll="onScrollFiltered"
+            v-else
+            key="list"
+            id="queue"
+            class="SoundCloudPlayer-musicList"
+            appear
+          >
+            <ListTile
+              v-for="track in oldFilteredTracklist"
+              :key="track.id"
+              :track="track"
+              :initiator="stateInitiator.filtered"
+            ></ListTile>
+            <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
+              <img
+                class="SoundCloudPlayer-loadingIcon"
+                loading="lazy"
+                src="@/assets/img/loading.gif"
+              />
+            </div>
+          </div>
+        </transition>
       </div>
     </div>
-    <div
-      v-if="!searchQuery"
-      id="unfiltered"
-      class="SoundCloudPlayer-musicUnfiltered"
-    >
-      <transition mode="out-in" name="fade" appear>
-        <div
-          @scroll="onScroll"
-          v-if="gridEnabled"
-          key="grid"
-          id="queue"
-          class="SoundCloudPlayer-musicGrid"
-        >
-          <GridTile
-            v-for="track in filteredTrackList"
-            :key="track.id"
-            :track="track"
-            :initiator="stateInitiator.unfiltered"
-          ></GridTile>
-          <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
-            <img
-              class="SoundCloudPlayer-loadingIcon"
-              loading="lazy"
-              src="@/assets/img/loading.gif"
-            />
-          </div>
-        </div>
-        <div
-          @scroll="onScroll"
-          v-else
-          key="list"
-          id="queue"
-          class="SoundCloudPlayer-musicList"
-          appear
-        >
-          <ListTile
-            v-for="track in filteredTrackList"
-            :key="track.id"
-            :track="track"
-            :initiator="stateInitiator.unfiltered"
-          ></ListTile>
-          <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
-            <img
-              class="SoundCloudPlayer-loadingIcon"
-              loading="lazy"
-              src="@/assets/img/loading.gif"
-            />
-          </div>
-        </div>
-      </transition>
-    </div>
-    <div v-else class="SoundCloudPlayer-musicFiltered">
-      <transition mode="out-in" name="fade" appear>
-        <div
-          @scroll="onScrollFiltered"
-          v-if="gridEnabled"
-          key="grid"
-          id="queue"
-          class="SoundCloudPlayer-musicGrid"
-        >
-          <GridTile
-            v-for="track in oldFilteredTracklist"
-            :key="track.id"
-            :track="track"
-            :initiator="stateInitiator.filtered"
-          ></GridTile>
-          <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
-            <img
-              class="SoundCloudPlayer-loadingIcon"
-              loading="lazy"
-              src="@/assets/img/loading.gif"
-            />
-          </div>
-        </div>
-        <div
-          @scroll="onScrollFiltered"
-          v-else
-          key="list"
-          id="queue"
-          class="SoundCloudPlayer-musicList"
-          appear
-        >
-          <ListTile
-            v-for="track in oldFilteredTracklist"
-            :key="track.id"
-            :track="track"
-            :initiator="stateInitiator.filtered"
-          ></ListTile>
-          <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
-            <img
-              class="SoundCloudPlayer-loadingIcon"
-              loading="lazy"
-              src="@/assets/img/loading.gif"
-            />
-          </div>
-        </div>
-      </transition>
-    </div>
-  </div>
+  </GenericPlayer>
 </template>
 
 <script lang="ts">
@@ -211,6 +143,7 @@ import GridTile from "@/components/GridTile.vue";
 import ListTile from "@/components/ListTile.vue";
 import DraggablePlayer from "@/components/DraggablePlayer.vue";
 import SettingsComponent from "@/components/SettingsComponent.vue";
+import GenericPlayer from "./GenericPlayer.vue";
 import {
   getFavorites,
   getNextFavorites,
@@ -222,26 +155,27 @@ import { debounce } from "lodash";
 import { StateInitiator } from "@/enums/state-initiator";
 import { FavoriteItem } from "@/interfaces/soundcloud/favorite-item";
 import { PlaylistWithTracks } from "@/interfaces/soundcloud/playlist-with-tracks";
-
+import ToggleSettingsMixin from "@/mixins/toggle-settings";
 const MAX_FILTER_ITEM = 10; // Maximum number of items that will be displayed to avoid too much api calls
 
 export default Vue.extend({
+  mixins: [ToggleSettingsMixin],
   components: {
     GridTile,
     ListTile,
     DraggablePlayer,
     SettingsComponent,
+    GenericPlayer,
   },
   data() {
     return {
       gridEnabled: true,
+      isRefreshing: false,
+      refreshDisabled: false,
       tracklist: [] as Track[],
       scrollEnd: false,
       oldSearchQuery: "",
       searchQuery: "",
-      isRefreshing: false,
-      refreshDisabled: false,
-      showSettings: false,
       filterTracker: MAX_FILTER_ITEM,
       stateInitiator: StateInitiator,
       triggerAnimation: false,
@@ -275,7 +209,7 @@ export default Vue.extend({
     username(): string {
       return this.getSoundCloudUser.username;
     },
-    avatarUrl(): string {
+    avatarURL(): string {
       return this.getSoundCloudUser.avatar_url.replace("-large", "-t500x500");
     },
     filteredTrackList(): Track[] {
@@ -348,7 +282,8 @@ export default Vue.extend({
         this.forceUpdate();
       }
     },
-    onSearch() {
+    onSearch(value: string) {
+      this.searchQuery = value;
       this.searchTracks();
     },
     onRefresh() {
@@ -495,9 +430,6 @@ export default Vue.extend({
         queue.style.overflowY = "auto";
       }
     },
-    toggleSettings() {
-      this.showSettings = !this.showSettings;
-    },
     reset() {
       this.tracklist = [];
     },
@@ -519,13 +451,12 @@ export default Vue.extend({
 .SoundCloudPlayer {
   $block: &;
 
-  padding: 0 2.5rem;
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.5s;
-  position: relative;
-  z-index: 1;
+  &-viewSwitch {
+    &Title {
+      font-weight: 700;
+      font-size: $xxl;
+    }
+  }
 
   &-loading {
     &Container {
@@ -537,129 +468,6 @@ export default Vue.extend({
     &Icon {
       height: 5rem;
       width: 5rem;
-    }
-  }
-
-  &-top {
-    &Container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-  }
-
-  &-settingsIcon {
-    padding: 1.25rem;
-  }
-
-  &-avatar {
-    &Img {
-      border-radius: 50%;
-      height: 7.5rem;
-      width: 7.5rem;
-    }
-  }
-
-  &-fetching,
-  &-username {
-    font-size: $xxl;
-  }
-
-  &-username {
-    font-weight: 700;
-    margin-top: 0.5rem;
-  }
-
-  &-search {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 2.5rem;
-    position: relative;
-    height: 5rem;
-
-    &Icon {
-      position: absolute;
-      left: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
-    &Input {
-      height: 100%;
-      width: calc(100vw - 11rem);
-      border-radius: 5rem;
-      border: none;
-      background: $light;
-      padding-left: 5rem;
-
-      &::placeholder {
-        color: $black;
-      }
-    }
-
-    &Refresh {
-      background: $light;
-      border-radius: 50%;
-      height: 5rem;
-      width: 5rem;
-
-      &--on {
-        animation: spin 1.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
-      }
-
-      &Icon {
-        width: 3rem;
-        height: 3rem;
-      }
-    }
-
-    &Icon {
-      width: 3rem;
-      height: 3rem;
-    }
-
-    &Remove {
-      position: absolute;
-      top: 50%;
-      right: 0;
-      transform: translateY(-50%);
-      margin-right: 6rem;
-      padding: 1rem;
-      z-index: 1;
-
-      &Icon {
-        height: 3rem;
-        width: 3rem;
-      }
-    }
-  }
-
-  &-viewSwitch {
-    margin-top: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    &Icons {
-      display: flex;
-      align-items: center;
-    }
-
-    &Title {
-      font-weight: 700;
-      font-size: $xxl;
-    }
-
-    &Button {
-      padding: 2rem;
-    }
-
-    &List {
-      padding-right: 1.25rem;
-    }
-
-    &Grid {
-      padding-right: 1.75rem;
     }
   }
 
@@ -682,71 +490,13 @@ export default Vue.extend({
     flex-direction: column;
   }
 
-  ::-webkit-scrollbar {
-    width: 0.5rem;
-    position: absolute;
-    scrollbar-color: $black;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: $black;
-    border-radius: 5rem;
-  }
-
   &--dark {
-    & #{$block}-fetching {
-      color: $white;
-    }
-
-    & #{$block}-username {
-      color: $white;
-    }
-
-    & #{$block}-settings {
-      &Icon {
-        filter: invert(100%);
-      }
-    }
-
-    & #{$block}-search {
-      &Input {
-        background: $dark;
-        color: $white;
-
-        &::placeholder {
-          color: $white;
-        }
-      }
-
-      &Refresh {
-        background: $dark;
-
-        &Icon {
-          filter: invert(100%);
-        }
-      }
-
-      &Icon {
-        filter: invert(100%);
-      }
-
-      &Remove {
-        &Icon {
-          filter: invert(100%);
-        }
-      }
-    }
-
-    & #{$block}-loadingContainer {
-      filter: invert(100%);
-    }
-
     & #{$block}-viewSwitchTitle {
       color: $white;
     }
 
-    & ::-webkit-scrollbar-thumb {
-      background: $white;
+    & #{$block}-loadingContainer {
+      filter: invert(100%);
     }
   }
 }
