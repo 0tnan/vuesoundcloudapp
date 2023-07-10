@@ -5,6 +5,8 @@
       <div v-else class="Home-profile">
         <p class="Home-profileText Text">Fetch From</p>
         <input
+          autocomplete="off"
+          autocorrect="off"
           type="text"
           v-model="url"
           class="Home-profileInput Input"
@@ -102,7 +104,7 @@ export default Vue.extend({
     &Error {
       font-size: $s;
       font-family: $font-primary;
-      color: #dc3545;
+      color: $red;
       font-weight: 300;
     }
   }

@@ -10,6 +10,7 @@ import { StatusBar, Style } from "@capacitor/status-bar";
 import { LocalStorage } from "@/enums/local-storage";
 import { DarkMode } from "@/enums/dark-mode";
 import { Platform } from "@/enums/platform";
+import { Players } from "@/enums/players";
 
 Vue.use(Vuex);
 
@@ -18,6 +19,7 @@ interface State {
   spotifyState: SpotifyState;
   isDarkMode: boolean;
   platform: Platform;
+  activeTab: string;
 }
 
 interface Payload {
@@ -39,8 +41,14 @@ interface SoundCloudState {
 
 interface SpotifyState {
   clientId: string;
+  codeVerifier: string;
   user: string;
-  apiKey: string;
+  redirectURIWeb: string;
+  redirectURIAndroid: string;
+  redirectURIIos: string;
+  authorizationCode: string;
+  accessToken: string;
+  refreshToken: string;
 }
 
 function handleDarkMode(mode: boolean) {
@@ -65,15 +73,49 @@ export default new Vuex.Store({
         initiatedBy: "",
       } as SoundCloudState,
       spotifyState: {
-        clientId: "",
+        codeVerifier: "",
+        clientId: "c6e30915757446b89e02fce3477fbd41",
         user: "",
-        apiKey: "",
+        authorizationCode: "",
+        redirectURIWeb: "http://localhost:8080/player-selector",
+        redirectURIAndroid: "com.app.omniwave:/",
+        redirectURIIos: "com.app.omniwave:/",
+        accessToken: "",
+        refreshToken: "",
       } as SpotifyState,
       isDarkMode: true,
       platform: Platform.web,
+      activeTab: "",
     };
   },
   getters: {
+    getSpotifyClientId(state: State) {
+      return state.spotifyState.clientId;
+    },
+    getSpotifyCodeVerifier(state: State) {
+      return state.spotifyState.codeVerifier;
+    },
+    getSpotifyUser(state: State) {
+      return state.spotifyState.user;
+    },
+    getSpotifyRedirectURIWeb(state: State) {
+      return state.spotifyState.redirectURIWeb;
+    },
+    getSpotifyRedirectURIIos(state: State) {
+      return state.spotifyState.redirectURIIos;
+    },
+    getSpotifyRedirectURIAndroid(state: State) {
+      return state.spotifyState.redirectURIAndroid;
+    },
+    getSpotifyAuthorizationCode(state: State) {
+      return state.spotifyState.authorizationCode;
+    },
+    getSpotifyAccessToken(state: State) {
+      return state.spotifyState.accessToken;
+    },
+    getSpotifyRefreshToken(state: State) {
+      return state.spotifyState.refreshToken;
+    },
     getSoundCloudApiKey(state: State) {
       return state.soundCloudState.apiKey;
     },
@@ -104,8 +146,25 @@ export default new Vuex.Store({
     getPlatform(state: State) {
       return state.platform;
     },
+    getActiveTab(state: State) {
+      return state.activeTab;
+    },
   },
   mutations: {
+    setSpotifyAuthorizationCode(state: State, code: string) {
+      state.spotifyState.authorizationCode = code;
+    },
+    setSpotifyCodeVerifier(state: State, codeVerifier: string) {
+      state.spotifyState.codeVerifier = codeVerifier;
+    },
+    setSpotifyAccessToken(state: State, token: string) {
+      state.spotifyState.accessToken = token;
+      localStorage.setItem(LocalStorage.SpotifyAccessToken, token);
+    },
+    setSpotifyRefreshToken(state: State, token: string) {
+      state.spotifyState.refreshToken = token;
+      localStorage.setItem(LocalStorage.SpotifyRefreshToken, token);
+    },
     setSoundCloudApiKey(state: State, apiKey: string) {
       state.soundCloudState.apiKey = apiKey;
     },
@@ -153,6 +212,9 @@ export default new Vuex.Store({
     },
     setPlatform(state: State, value: Platform) {
       state.platform = value;
+    },
+    setActiveTab(state: State, tab: Players) {
+      state.activeTab = tab;
     },
   },
   actions: {

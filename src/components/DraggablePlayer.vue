@@ -7,7 +7,7 @@
       'DraggablePlayer--dark': getDarkMode,
       'DraggablePlayer--ios': isIos,
       'DraggablePlayer--web': isWeb,
-      'DraggablePlayer-android': isAndroid,
+      'DraggablePlayer--android': isAndroid,
     }"
     :style="draggableStyle"
   >
@@ -360,7 +360,7 @@ interface ArtworkItem {
   sizes: string;
 }
 
-const BOTTOM_WEB = 45;
+const BOTTOM_WEB = 75;
 const BOTTOM_IOS = 40;
 
 export default Vue.extend({
@@ -454,12 +454,9 @@ export default Vue.extend({
       this.barWidth = bar.offsetWidth;
       this.dotMaxBound = this.barWidth - DOT_WIDTH;
       this.audio = new Audio("");
-      if (
-        this.getPlatform === Platform.web ||
-        this.getPlatform === Platform.android
-      ) {
+      if (this.isWeb || this.isAndroid) {
         this.maxHeight = player.offsetHeight - BOTTOM_WEB;
-      } else if (this.getPlatform === Platform.ios) {
+      } else if (this.isIos) {
         this.maxHeight = player.offsetHeight - BOTTOM_IOS;
       }
       this.topBound = this.viewportHeight - this.maxHeight;
@@ -826,7 +823,7 @@ export default Vue.extend({
     replayCurrentSong(withPlay: boolean) {
       this.resetDotPosition();
       this.resetProgressBar();
-      this.resetDotAnimation();
+      this.resetAnimation();
       this.audio.currentTime = 0;
       if (withPlay) {
         this.audio.play();
@@ -890,7 +887,6 @@ export default Vue.extend({
     shuffle() {
       if (!this.shuffleActive) {
         this.shuffleActive = true;
-        this.$emit("getNextFavorites");
       } else {
         this.shuffleActive = false;
       }
@@ -943,7 +939,7 @@ export default Vue.extend({
       this.currentSongEnded = false;
 
       if (this.currentDotPosition.x === 0 && !this.currentSongEnded) {
-        this.resetDotAnimation();
+        this.resetAnimation();
       } else if (
         this.currentDotPosition.x < this.dotMaxBound &&
         this.currentDotPosition.x > 0 &&
@@ -967,7 +963,7 @@ export default Vue.extend({
             transform: "translate3D(0, 0, 0)",
             transition: `width ${remainingDuration}ms linear, background 0s, transform 0s`,
           };
-        }, 300);
+        }, 50);
       }
 
       this.isSeeking = false;
@@ -1002,7 +998,7 @@ export default Vue.extend({
       this.currentTime = 0;
       setTimeout(() => {
         this.displayedCurrentTime = "00:00";
-      }, 300);
+      }, 50);
       this.currentDotPosition = { x: 0, y: 0 };
       this.seekOffset = { x: 0, y: 0 };
       this.resetDotPosition();
@@ -1100,12 +1096,12 @@ export default Vue.extend({
         transition: `width ${this.currentSongDuration}ms linear, background 0s, transform 0s`,
       };
     },
-    resetDotAnimation() {
+    resetAnimation() {
       this.resetDotPosition();
       this.resetProgressBar();
       setTimeout(() => {
         this.startAnimation();
-      }, 300);
+      }, 50);
     },
     getSongDuration(): Promise<number> {
       return new Promise((resolve) => {
@@ -1206,7 +1202,7 @@ export default Vue.extend({
             transform: "translate3D(0, 0, 0)",
             transition: `width ${remainingDuration}ms linear, background 0s, transform 0s`,
           };
-        }, 300);
+        }, 50);
       }
     },
   },
@@ -1276,7 +1272,7 @@ export default Vue.extend({
             artworkItems
           );
           this.whenAudioReady().then(() => {
-            this.resetDotAnimation();
+            this.resetAnimation();
             MediaSession.setPositionState({
               position: this.audio.currentTime,
               duration: this.audio.duration,
@@ -1292,7 +1288,7 @@ export default Vue.extend({
     nextTrack: {
       handler(newVal) {
         if (newVal !== undefined && newVal === null) {
-          this.$emit("getNextFavorites", true);
+          this.$emit("getNextFavorites");
         }
       },
       deep: true,
@@ -1321,7 +1317,7 @@ export default Vue.extend({
 
   position: absolute;
   left: 0;
-  bottom: 0;
+  bottom: 7.5rem;
   z-index: 999;
   height: 9.5rem;
   width: 100vw;
@@ -1403,10 +1399,6 @@ export default Vue.extend({
         }
       }
     }
-  }
-
-  &--web {
-    bottom: 4.5rem;
   }
 
   &--ios {
@@ -1627,7 +1619,7 @@ export default Vue.extend({
           }
 
           &--paused {
-            transform: scale(0.8);
+            transform: scale(0.75);
           }
 
           &--ended {

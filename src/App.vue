@@ -23,8 +23,10 @@ import { getFavorites } from "./utils/soundcloud/soundcloud-api";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
 import { Capacitor } from "@capacitor/core";
+import { App } from "@capacitor/app";
 import { mapGetters } from "vuex";
 import { Platform } from "@/enums/platform";
+import { Players } from "@/enums/players";
 import PlatformMixin from "@/mixins/platform";
 
 export default Vue.extend({
@@ -88,8 +90,15 @@ export default Vue.extend({
         //
       });
   },
+  async mounted() {
+    await App.addListener("appUrlOpen", (data) => {
+      if (this.getActiveTab === Players.spotify) {
+        store.commit("setSpotifyAuthorizationCode", data.url.split("code=")[1]);
+      }
+    });
+  },
   computed: {
-    ...mapGetters(["getDarkMode"]),
+    ...mapGetters(["getDarkMode", "getActiveTab"]),
   },
 });
 </script>
@@ -99,7 +108,7 @@ export default Vue.extend({
 
 .App {
   height: 100%;
-  padding: 3rem 0;
+  padding: 0;
   transition: all 0.5s;
 
   &--dark {

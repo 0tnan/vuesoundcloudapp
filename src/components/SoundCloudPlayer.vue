@@ -34,6 +34,8 @@
     </div>
     <div class="SoundCloudPlayer-search">
       <input
+        autocomplete="off"
+        autocorrect="off"
         @input="onSearch"
         type="text"
         class="SoundCloudPlayer-searchInput"

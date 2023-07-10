@@ -22,6 +22,8 @@
     <div class="Settings-profile">
       <p class="Settings-profileText Text">Fetch From</p>
       <input
+        autocomplete="off"
+        autocorrect="off"
         type="text"
         v-model="url"
         class="Settings-profileInput Input"
