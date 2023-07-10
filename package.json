@@ -1,5 +1,5 @@
 {
-  "name": "vuesoundcloudapp",
+  "name": "omniwave",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,10 @@
     "capacitor": "npm run build && npx cap sync"
   },
   "dependencies": {
+    "@byteowls/capacitor-oauth2": "^4.0.2",
     "@capacitor/android": "^5.0.4",
+    "@capacitor/app": "^5.0.5",
+    "@capacitor/browser": "^5.0.5",
     "@capacitor/cli": "^5.0.4",
     "@capacitor/core": "^5.0.4",
     "@capacitor/ios": "^5.0.4",

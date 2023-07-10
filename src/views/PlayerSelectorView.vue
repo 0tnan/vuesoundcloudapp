@@ -61,6 +61,7 @@
 
 <script lang="ts">
 import Vue from "vue";
+import store from "@/store";
 import SoundCloudPlayer from "@/components/SoundCloudPlayer.vue";
 import SpotifyPlayer from "@/components/SpotifyPlayer.vue";
 import AppleMusicPlayer from "@/components/AppleMusicPlayer.vue";
@@ -78,6 +79,9 @@ const TRANSITION = "all 0.2s ease-in-out";
 
 export default Vue.extend({
   mixins: [PlatformMixin],
+  created() {
+    store.commit("setActiveTab", Players.soundcloud);
+  },
   data() {
     return {
       soundCloud: true,
@@ -138,6 +142,23 @@ export default Vue.extend({
       };
     },
   },
+  watch: {
+    soundCloud(val) {
+      if (val) {
+        store.commit("setActiveTab", Players.soundcloud);
+      }
+    },
+    spotify(val) {
+      if (val) {
+        store.commit("setActiveTab", Players.spotify);
+      }
+    },
+    appleMusic(val) {
+      if (val) {
+        store.commit("setActiveTab", Players.appleMusic);
+      }
+    },
+  },
 });
 </script>
 
@@ -168,7 +189,6 @@ export default Vue.extend({
 
   &--ios {
     & #{$block}-tab {
-      bottom: 0;
       height: 7rem;
     }
   }
@@ -176,7 +196,7 @@ export default Vue.extend({
   &-tab {
     position: absolute;
     display: flex;
-    bottom: -3rem;
+    bottom: 0;
     z-index: 2;
     height: 7.5rem;
     width: 100vw;
