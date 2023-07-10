@@ -338,7 +338,7 @@ import PlatformMixin from "@/mixins/platform";
 import { Platform } from "@/enums/platform";
 import { Players } from "@/enums/players";
 
-const INITIAL_POSITION = "95px";
+const INITIAL_POSITION = "175px";
 const INITIAL_POSITION_IOS = "125px";
 const TRANSITION = "all 0.3s ease-in-out";
 const BUTTON_TRANSFORM = "translateX(-50%) translateY(-1.5rem)";
@@ -359,9 +359,6 @@ interface ArtworkItem {
   type: string;
   sizes: string;
 }
-
-const BOTTOM_WEB = 75;
-const BOTTOM_IOS = 40;
 
 export default Vue.extend({
   mixins: [PlatformMixin],
@@ -454,11 +451,7 @@ export default Vue.extend({
       this.barWidth = bar.offsetWidth;
       this.dotMaxBound = this.barWidth - DOT_WIDTH;
       this.audio = new Audio("");
-      if (this.isWeb || this.isAndroid) {
-        this.maxHeight = player.offsetHeight - BOTTOM_WEB;
-      } else if (this.isIos) {
-        this.maxHeight = player.offsetHeight - BOTTOM_IOS;
-      }
+      this.maxHeight = player.offsetHeight;
       this.topBound = this.viewportHeight - this.maxHeight;
       this.draggableWidth = draggable.offsetWidth;
     }
@@ -473,13 +466,13 @@ export default Vue.extend({
 
     this.next = debounce(this.next, 200);
     this.previous = debounce(this.previous, 200);
-    this.$parent?.$emit("soundCloudAsPlayer", {
+    this.$parent?.$parent?.$emit("soundCloudAsPlayer", {
       player: Players.soundcloud,
       height: this.maxHeight,
     });
   },
   activated() {
-    this.$parent?.$emit("soundCloudAsPlayer", {
+    this.$parent?.$parent?.$emit("soundCloudAsPlayer", {
       player: Players.soundcloud,
       height: this.maxHeight,
     });
@@ -658,7 +651,7 @@ export default Vue.extend({
           scale: 1 - positionFraction,
           transition: "none",
         };
-        this.$parent?.$emit(
+        this.$parent?.$parent?.$emit(
           "isDragging",
           this.viewportHeight - this.currentPlayerPosition
         );
@@ -720,7 +713,7 @@ export default Vue.extend({
       this.buttonStyle = {
         transform: BUTTON_TRANSFORM,
       };
-      this.$parent?.$emit("dragDown");
+      this.$parent?.$parent?.$emit("dragDown");
     },
     dragUp() {
       this.draggableStyle = {
@@ -741,7 +734,7 @@ export default Vue.extend({
       this.buttonStyle = {
         transform: BUTTON_INITIAL,
       };
-      this.$parent?.$emit("dragUp");
+      this.$parent?.$parent?.$emit("dragUp");
     },
     startSeek(e: TouchEvent) {
       this.isSeeking = true;
@@ -1317,9 +1310,9 @@ export default Vue.extend({
 
   position: absolute;
   left: 0;
-  bottom: 7.5rem;
+  bottom: 0;
   z-index: 999;
-  height: 9.5rem;
+  height: 17.5rem;
   width: 100vw;
   background: $light;
   border-radius: 3rem 3rem 0 0;
@@ -1399,11 +1392,6 @@ export default Vue.extend({
         }
       }
     }
-  }
-
-  &--ios {
-    bottom: 4rem;
-    height: 12.5rem;
   }
 
   &-drag {
@@ -1712,8 +1700,9 @@ export default Vue.extend({
     }
 
     &Controls {
-      width: calc(100% - 10rem);
+      width: calc(100% - 12.5rem);
       align-self: center;
+      margin-bottom: 7.5rem;
 
       &Icon {
         height: 3.5rem;
