@@ -48,7 +48,7 @@
             <GridTile
               v-for="track in filteredTrackList"
               :key="track.id"
-              :track="track"
+              :soundCloudTrack="track"
               :initiator="stateInitiator.unfiltered"
             ></GridTile>
             <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
@@ -70,7 +70,7 @@
             <ListTile
               v-for="track in filteredTrackList"
               :key="track.id"
-              :track="track"
+              :soundCloudTrack="track"
               :initiator="stateInitiator.unfiltered"
             ></ListTile>
             <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
@@ -95,7 +95,7 @@
             <GridTile
               v-for="track in oldFilteredTracklist"
               :key="track.id"
-              :track="track"
+              :soundCloudTrack="track"
               :initiator="stateInitiator.filtered"
             ></GridTile>
             <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">
@@ -117,7 +117,7 @@
             <ListTile
               v-for="track in oldFilteredTracklist"
               :key="track.id"
-              :track="track"
+              :soundCloudTrack="track"
               :initiator="stateInitiator.filtered"
             ></ListTile>
             <div v-if="!scrollEnd" class="SoundCloudPlayer-loadingContainer">

@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="!user"
+    v-if="!hasUser"
     class="SpotifyPlayer"
     :class="{ 'SpotifyPlayer--dark': getDarkMode }"
   >
@@ -31,7 +31,140 @@
       :switchToGrid="switchToGrid"
       :switchToList="switchToList"
       :gridEnabled="gridEnabled"
-    ></GenericPlayer>
+    >
+      <div class="SpotifyPlayer-menu" slot="menu">
+        <div
+          class="SpotifyPlayer-menuItem"
+          :class="{ 'SpotifyPlayer-menuItem--active': playlistViewActive }"
+          @click="goToPlaylists"
+        >
+          Playlists
+        </div>
+        <div
+          class="SpotifyPlayer-menuItem"
+          :class="{ 'SpotifyPlayer-menuItem--active': savedTracksViewActive }"
+          @click="goToSavedTracks"
+        >
+          Liked Tracks
+        </div>
+      </div>
+      <div class="SpotifyPlayer-lists" slot="lists">
+        <transition mode="out-in" name="fade" appear>
+          <div v-if="playlistViewActive" key="playlistView">
+            <div class="SpotifyPlayer-listUnfiltered">
+              <transition mode="out-in" name="fade" appear>
+                <div
+                  v-if="gridEnabled"
+                  key="grid"
+                  class="SpotifyPlayer-listGrid"
+                  id="list"
+                  @scroll="onScrollUnfiltered"
+                >
+                  <GridTile
+                    v-for="item in getPlaylistItems"
+                    :key="item.uri"
+                    type="SPOTIFY_PLAYLIST"
+                    :playlistSource="item.images[0].url"
+                    :playlistDescription="item.description"
+                    :playlistName="item.name"
+                  ></GridTile>
+                  <div
+                    v-if="!scrollEndPlaylist"
+                    class="SpotifyPlayer-loadingContainer"
+                  >
+                    <img
+                      class="SpotifyPlayer-loadingIcon"
+                      loading="lazy"
+                      src="@/assets/img/loading.gif"
+                    />
+                  </div>
+                </div>
+                <div
+                  v-else
+                  key="list"
+                  class="SpotifyPlayer-listList"
+                  id="list"
+                  @scroll="onScrollUnfiltered"
+                >
+                  <ListTile
+                    v-for="item in getPlaylistItems"
+                    :key="item.uri"
+                    type="SPOTIFY_PLAYLIST"
+                    :playlistSource="item.images[0].url"
+                    :playlistDescription="item.description"
+                    :playlistName="item.name"
+                  ></ListTile>
+                  <div
+                    v-if="!scrollEndPlaylist"
+                    class="SpotifyPlayer-loadingContainer"
+                  >
+                    <img
+                      class="SpotifyPlayer-loadingIcon"
+                      loading="lazy"
+                      src="@/assets/img/loading.gif"
+                    />
+                  </div>
+                </div>
+              </transition>
+            </div>
+          </div>
+          <div v-else key="savedTracksView">
+            <div class="SpotifyPlayer-listUnfiltered">
+              <transition mode="out-in" name="fade" appear>
+                <div
+                  v-if="gridEnabled"
+                  key="grid"
+                  class="SpotifyPlayer-listGrid"
+                  id="list"
+                  @scroll="onScrollUnfiltered"
+                >
+                  <GridTile
+                    v-for="item in getSavedTracksItems"
+                    :key="item.track.id"
+                    type="SPOTIFY_TRACK"
+                    :spotifyTrack="item.track"
+                  ></GridTile>
+                  <div
+                    v-if="!scrollEndTracks"
+                    class="SpotifyPlayer-loadingContainer"
+                  >
+                    <img
+                      class="SpotifyPlayer-loadingIcon"
+                      loading="lazy"
+                      src="@/assets/img/loading.gif"
+                    />
+                  </div>
+                </div>
+                <div
+                  v-else
+                  key="list"
+                  class="SpotifyPlayer-listList"
+                  id="list"
+                  @scroll="onScrollUnfiltered"
+                >
+                  <ListTile
+                    v-for="item in getSavedTracksItems"
+                    :key="item.track.id"
+                    type="SPOTIFY_TRACK"
+                    :spotifyTrack="item.track"
+                  ></ListTile>
+                  <div
+                    v-if="!scrollEndTracks"
+                    class="SpotifyPlayer-loadingContainer"
+                  >
+                    <img
+                      class="SpotifyPlayer-loadingIcon"
+                      loading="lazy"
+                      src="@/assets/img/loading.gif"
+                    />
+                  </div>
+                </div>
+              </transition>
+            </div>
+          </div>
+        </transition>
+      </div>
+    </GenericPlayer>
   </div>
 </template>
 
@@ -40,6 +173,8 @@ import Vue from "vue";
 import store from "@/store";
 import { mapGetters } from "vuex";
 import GenericPlayer from "./GenericPlayer.vue";
+import GridTile from "@/components/GridTile.vue";
+import ListTile from "@/components/ListTile.vue";
 import { OAuth2Client } from "@byteowls/capacitor-oauth2";
 import {
   getSpotifyAccessToken,
@@ -48,8 +183,18 @@ import {
 import { AccessTokenRequestBody } from "@/interfaces/spotify/access-token-request-body";
 import { RefreshTokenRequestBody } from "@/interfaces/spotify/refresh-token-request-body";
 import { AccessTokenResponse } from "@/interfaces/spotify/access-token-response";
+import { Playlists } from "@/interfaces/spotify/playlists";
+import { PlaylistsItem } from "@/interfaces/spotify/playlists-item";
+import { SavedTracks } from "@/interfaces/spotify/saved-tracks";
+import { SavedTracksItem } from "@/interfaces/spotify/saved-tracks-item";
 import { User } from "@/interfaces/spotify/user";
-import { getUser } from "@/utils/spotify/spotify-api";
+import {
+  getUser,
+  getPlaylists,
+  getPlaylistsNextPageItems,
+  getSavedTracks,
+  getSavedTracksNextPageItems,
+} from "@/utils/spotify/spotify-api";
 import PlatformMixin from "@/mixins/platform";
 import ToggleSettingsMixin from "@/mixins/toggle-settings";
 
@@ -59,7 +204,7 @@ const POSSIBLE =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const HASH_METHOD = "SHA-256";
 const SPOTIFY_SCOPE =
-  "user-read-private user-read-email playlist-read-private streaming app-remote-control user-read-playback-state user-modify-playback-state user-read-currently-playing";
+  "user-read-private user-read-email playlist-read-private user-library-read streaming app-remote-control user-read-playback-state user-modify-playback-state user-read-currently-playing";
 const CODE_CHALLENGE_METHOD = "S256";
 const RESPONSE_TYPE = "code";
 const WINDOW_OPTIONS = "height=600,left=0,top=0";
@@ -71,16 +216,12 @@ export default Vue.extend({
   mixins: [PlatformMixin, ToggleSettingsMixin],
   components: {
     GenericPlayer,
+    GridTile,
+    ListTile,
   },
   created() {
     if (this.getSpotifyAccessToken) {
-      getUser(this.getSpotifyAccessToken)
-        .then((response: User) => {
-          this.user = response;
-        })
-        .catch((reason) => {
-          this.refreshToken(reason.error.status);
-        });
+      this.getData();
     }
   },
   data() {
@@ -90,7 +231,13 @@ export default Vue.extend({
       refreshDisabled: false,
       hasError: false,
       user: {} as User,
+      playlistItems: [] as PlaylistsItem[],
+      savedTracksItems: [] as SavedTracksItem[],
       searchQuery: "",
+      scrollEndPlaylist: false,
+      scrollEndTracks: false,
+      playlistViewActive: true,
+      savedTracksViewActive: false,
     };
   },
   computed: {
@@ -104,7 +251,12 @@ export default Vue.extend({
       "getSpotifyAccessToken",
       "getSpotifyRefreshToken",
       "getSpotifyCodeVerifier",
+      "getSpotifyNextPlaylistURL",
+      "getSpotifyNextSavedTracksURL",
     ]),
+    hasUser(): boolean {
+      return !!this.user && Object.keys(this.user).length > 0;
+    },
     avatarURL(): string {
       if (this.user.images && this.user.images) {
         return this.user.images[1].url;
@@ -120,6 +272,12 @@ export default Vue.extend({
         return this.getSpotifyRedirectURIIos;
       }
       return "";
+    },
+    getPlaylistItems(): PlaylistsItem[] {
+      return this.playlistItems;
+    },
+    getSavedTracksItems(): SavedTracksItem[] {
+      return this.savedTracksItems;
     },
   },
   methods: {
@@ -204,7 +362,7 @@ export default Vue.extend({
         store.commit("setSpotifyRefreshToken", response.refresh_token);
       });
     },
-    refreshToken(reason: number) {
+    refreshToken(reason: number, callback: () => void) {
       if (reason === REFRESH_TOKEN_EXPIRED_CODE) {
         const refreshTokenRequestBody = {
           grant_type: REFRESH_GRANT_TYPE,
@@ -217,11 +375,83 @@ export default Vue.extend({
             store.commit("setSpotifyRefreshToken", response.refresh_token);
           })
           .then(() => {
-            getUser(this.getSpotifyAccessToken).then((response: User) => {
-              this.user = response;
-            });
+            callback;
           });
       }
+    },
+    getData() {
+      getUser(this.getSpotifyAccessToken)
+        .then((response: User) => {
+          this.user = response;
+        })
+        .then(() => {
+          getPlaylists(this.getSpotifyAccessToken).then(
+            (response: Playlists) => {
+              this.handlePlaylistsResponse(response);
+            }
+          );
+        })
+        .then(() => {
+          getSavedTracks(this.getSpotifyAccessToken).then(
+            (response: SavedTracks) => {
+              this.handleSavedTracksResponse(response);
+            }
+          );
+        })
+        .catch((reason) => {
+          this.refreshToken(reason.error.status, this.getData);
+        });
+    },
+    getNextPageItems() {
+      if (this.playlistViewActive) {
+        if (this.getSpotifyNextPlaylistURL !== null) {
+          getPlaylistsNextPageItems(
+            this.getSpotifyAccessToken,
+            this.getSpotifyNextPlaylistURL
+          )
+            .then((response: Playlists) => {
+              this.handlePlaylistsResponse(response);
+            })
+            .catch((reason) => {
+              this.refreshToken(reason.error.status, this.getNextPageItems);
+            });
+        }
+      } else {
+        getSavedTracksNextPageItems(
+          this.getSpotifyAccessToken,
+          this.getSpotifyNextSavedTracksURL
+        )
+          .then((response: SavedTracks) => {
+            this.handleSavedTracksResponse(response);
+          })
+          .catch((reason) => {
+            this.refreshToken(reason.error.status, this.getNextPageItems);
+          });
+      }
+    },
+    handlePlaylistsResponse(response: Playlists) {
+      this.playlistItems = [...this.playlistItems, ...response.items];
+      store.commit("setSpotifyNextPlaylistURL", response.next);
+    },
+    handleSavedTracksResponse(response: SavedTracks) {
+      this.savedTracksItems = [...this.savedTracksItems, ...response.items];
+      store.commit("setSpotifyNextSavedTracksURL", response.next);
+    },
+    scrollHandler(callback: () => void) {
+      const watchedURL = this.playlistViewActive
+        ? this.getSpotifyNextPlaylistURL
+        : this.getSpotifyNextSavedTracksURL;
+      const list = document.getElementById("list");
+      if (list) {
+        const isScrollEnd =
+          list.scrollTop + list.clientHeight >= list.scrollHeight;
+        if (isScrollEnd && !!watchedURL) {
+          callback();
+        }
+      }
+    },
+    onScrollUnfiltered() {
+      this.scrollHandler(this.getNextPageItems);
     },
     onSearch() {
       //
@@ -233,10 +463,18 @@ export default Vue.extend({
       //
     },
     switchToGrid() {
-      //
+      this.gridEnabled = true;
     },
     switchToList() {
-      //
+      this.gridEnabled = false;
+    },
+    goToPlaylists() {
+      this.playlistViewActive = true;
+      this.savedTracksViewActive = false;
+    },
+    goToSavedTracks() {
+      this.playlistViewActive = false;
+      this.savedTracksViewActive = true;
     },
   },
   watch: {
@@ -250,10 +488,18 @@ export default Vue.extend({
       } as AccessTokenRequestBody;
       this.requestAccessToken(requestBody);
     },
-    getSpotifyAccessToken(newVal) {
-      getUser(newVal).then((response: User) => {
-        this.user = response;
-      });
+    getSpotifyAccessToken() {
+      this.getData();
+    },
+    getSpotifyNextPlaylistURL(newVal) {
+      if (newVal === null) {
+        this.scrollEndPlaylist = true;
+      }
+    },
+    getSpotifyNextSavedTracksURL(newVal) {
+      if (newVal === null) {
+        this.scrollEndTracks = true;
+      }
     },
   },
 });
@@ -276,6 +522,19 @@ export default Vue.extend({
       &Icon {
         filter: invert(100);
       }
+    }
+  }
+
+  &-loading {
+    &Container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    &Icon {
+      height: 5rem;
+      width: 5rem;
     }
   }
 
@@ -308,6 +567,54 @@ export default Vue.extend({
       width: 7.5rem;
       border-radius: 50%;
     }
+  }
+
+  &-menu {
+    font-weight: 700;
+    font-size: $xxl;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: calc(100% - 11.5rem);
+    white-space: nowrap;
+    margin-top: 1rem;
+
+    &::-webkit-scrollbar {
+      height: 0.5rem;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      transition: all 0.5s ease-in-out;
+    }
+
+    &Item {
+      margin-right: 2.5rem;
+      padding-bottom: 1rem;
+      color: $dark;
+
+      &--active {
+        color: inherit;
+      }
+    }
+  }
+
+  &-listGrid,
+  &-listList {
+    margin-top: 1.5rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: calc(100vh - 37rem);
+    display: flex;
+    padding-bottom: 12rem;
+  }
+
+  &-listGrid {
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  &-listList {
+    flex-direction: column;
   }
 }
 </style>
