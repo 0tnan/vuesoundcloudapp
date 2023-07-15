@@ -335,11 +335,9 @@ import { StyleValue } from "vue/types/jsx";
 import { MediaSession } from "@jofr/capacitor-media-session";
 import { StateInitiator } from "@/enums/state-initiator";
 import PlatformMixin from "@/mixins/platform";
-import { Platform } from "@/enums/platform";
 import { Players } from "@/enums/players";
 
 const INITIAL_POSITION = "175px";
-const INITIAL_POSITION_IOS = "125px";
 const TRANSITION = "all 0.3s ease-in-out";
 const BUTTON_TRANSFORM = "translateX(-50%) translateY(-1.5rem)";
 const BUTTON_INITIAL = "translateX(-50%) translateY(0)";
@@ -686,21 +684,12 @@ export default Vue.extend({
       this.$emit("disallowScroll", false);
     },
     dragDown() {
-      if (this.getPlatform === Platform.ios) {
-        this.draggableStyle = {
-          height: `${INITIAL_POSITION_IOS}`,
-          transition: TRANSITION,
-          opacity: `${DEFAULT_OPACITY}%`,
-          transform: `translate3d(0, 0, 0)`,
-        };
-      } else {
-        this.draggableStyle = {
-          height: `${INITIAL_POSITION}`,
-          transition: TRANSITION,
-          opacity: `${DEFAULT_OPACITY}%`,
-          transform: `translate3d(0, 0, 0)`,
-        };
-      }
+      this.draggableStyle = {
+        height: `${INITIAL_POSITION}`,
+        transition: TRANSITION,
+        opacity: `${DEFAULT_OPACITY}%`,
+        transform: `translate3d(0, 0, 0)`,
+      };
       this.contentStyle = {
         opacity: 0,
         transition: TRANSITION,
