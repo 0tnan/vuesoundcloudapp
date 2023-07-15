@@ -49,6 +49,8 @@ interface SpotifyState {
   authorizationCode: string;
   accessToken: string;
   refreshToken: string;
+  nextPlaylistURL: string;
+  nextSavedTracksURL: string;
 }
 
 function handleDarkMode(mode: boolean) {
@@ -82,6 +84,8 @@ export default new Vuex.Store({
         redirectURIIos: "com.app.omniwave:/",
         accessToken: "",
         refreshToken: "",
+        nextPlaylistURL: "",
+        nextSavedTracksURL: "",
       } as SpotifyState,
       isDarkMode: true,
       platform: Platform.web,
@@ -115,6 +119,12 @@ export default new Vuex.Store({
     },
     getSpotifyRefreshToken(state: State) {
       return state.spotifyState.refreshToken;
+    },
+    getSpotifyNextPlaylistURL(state: State) {
+      return state.spotifyState.nextPlaylistURL;
+    },
+    getSpotifyNextSavedTracksURL(state: State) {
+      return state.spotifyState.nextSavedTracksURL;
     },
     getSoundCloudApiKey(state: State) {
       return state.soundCloudState.apiKey;
@@ -170,6 +180,12 @@ export default new Vuex.Store({
         LocalStorage.SpotifyRefreshToken,
         JSON.stringify(token)
       );
+    },
+    setSpotifyNextPlaylistURL(state: State, next: string) {
+      state.spotifyState.nextPlaylistURL = next;
+    },
+    setSpotifyNextSavedTracksURL(state: State, next: string) {
+      state.spotifyState.nextSavedTracksURL = next;
     },
     setSoundCloudApiKey(state: State, apiKey: string) {
       state.soundCloudState.apiKey = apiKey;

@@ -1,26 +1,41 @@
 <template>
   <div
+    v-if="isSoundCloudTrack"
     class="ListTile"
-    @click="setSong(track)"
+    @click="setSoundCloudSong"
     :class="{ 'ListTile--dark': getDarkMode }"
   >
     <img
       loading="lazy"
       class="ListTile-cover"
-      :src="getFullScaleImage(artwork, avatar)"
+      :src="getFullScaleImage(soundCloudArtwork, soundCloudAvatar)"
     />
     <div class="ListTile-text">
-      <p class="ListTile-title">{{ title }}</p>
-      <p class="ListTile-artist">{{ artist }}</p>
+      <p class="ListTile-title">{{ soundCloudTitle }}</p>
+      <p class="ListTile-artist">{{ soundCloudArtist }}</p>
+    </div>
+  </div>
+  <div v-else-if="isSpotifyPlaylist" class="ListTile">
+    <img loading="lazy" class="ListTile-cover" :src="playlistSource" />
+    <div class="ListTile-text">
+      <p class="ListTile-name">{{ playlistName }}</p>
+      <p class="ListTile-description">{{ playlistDescription }}</p>
+    </div>
+  </div>
+  <div v-else-if="isSpotifyTrack" class="ListTile">
+    <img loading="lazy" class="ListTile-cover" :src="spotifyArtwork" />
+    <div class="ListTile-text">
+      <p class="ListTile-title">{{ spotifyTitle }}</p>
+      <p class="ListTile-artist">{{ spotifyArtists }}</p>
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from "vue";
-import TrackMixin from "@/mixins/track";
+import MediaMixin from "@/mixins/media";
 export default Vue.extend({
-  mixins: [TrackMixin],
+  mixins: [MediaMixin],
 });
 </script>
 
@@ -46,7 +61,9 @@ export default Vue.extend({
   }
 
   &-title,
-  &-artist {
+  &-artist,
+  &-name,
+  &-description {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -61,12 +78,14 @@ export default Vue.extend({
     width: calc(100% - 7.5rem);
   }
 
-  &-title {
+  &-title,
+  &-name {
     font-size: $m;
     font-weight: 600;
   }
 
-  &-artist {
+  &-artist,
+  &-description {
     font-size: $s;
     font-weight: 300;
     margin-top: 0.5rem;
