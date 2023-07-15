@@ -274,10 +274,19 @@ export default Vue.extend({
       return "";
     },
     getPlaylistItems(): PlaylistsItem[] {
-      return this.playlistItems;
+      const unique = [
+        ...new Map(this.playlistItems.map((item) => [item.id, item])).values(),
+      ];
+
+      return unique;
     },
     getSavedTracksItems(): SavedTracksItem[] {
-      return this.savedTracksItems;
+      const unique = [
+        ...new Map(
+          this.savedTracksItems.map((item) => [item.track.id, item])
+        ).values(),
+      ];
+      return unique;
     },
   },
   methods: {
